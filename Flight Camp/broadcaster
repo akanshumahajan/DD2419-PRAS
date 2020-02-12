@@ -1,0 +1,49 @@
+#!/usr/bin/env python
+import sys
+import rospy
+import tf
+# import tf2_ros
+import math
+#from tf.transformations import quaternion_from_euler
+from geometry_msgs.msg import TransformStamped, Vector3
+from aruco_msgs.msg import MarkerArray
+
+detected_marker = None
+
+def callback(markers):
+	#print(markers)
+	global detected_marker
+	detected_marker = markers
+	
+def marker_transform(m):
+		#print(m.pose.pose.position)
+		t = TransformStamped()
+    		t.header.frame_id = 'cf1/camera_link'
+    		t.child_frame_id = 'aruco/detected' + str(m.id)
+    		t.transform.translation = Vector3(m.pose.pose.position.x, m.pose.pose.position.y, m.pose.pose.position.z)
+		t.transform.rotation = m.pose.pose.orientation
+
+		return t
+
+
+def main():
+	print('i main')
+	rate = rospy.Rate(10)
+	while not rospy.is_shutdown():
+		if detected_marker:
+			print('hittad')
+			for marker in detected_marker.markers:
+				print('transformerar')
+		#t = [marker_transform(marker) for marker in detected_marker.markers]
+				t = marker_transform(marker)			
+				br = tf.TransformBroadcaster()
+				br.sendTransform((t.transform.translation.x,t.transform.translation.y,t.transform.translation.z), (t.transform.rotation.x, t.transform.rotation.y, t.transform.rotation.z, t.transform.rotation.w), rospy.Time.now(), t.child_frame_id, t.header.frame_id)
+				print('broadcastat')
+		rate.sleep()
+
+if __name__ == '__main__':
+	rospy.init_node('broadcaster')
+	rospy.Subscriber('/aruco/markers', MarkerArray, callback)
+	
+	main()
+	rospy.spin()

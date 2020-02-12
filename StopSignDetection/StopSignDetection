@@ -1,0 +1,117 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Feb 11 23:15:51 2020
+
+@author: Fredrik Forsberg
+"""
+
+import rospy
+import roslib
+import cv2
+import numpy as np
+from std_msgs.msg import String
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge, CvBridgeError
+
+###
+
+
+class StopSignDetection:
+    def __init__(self, node_name, image_subscription_topic, image_publishing_topic, sign_edges=8,
+                 bgr_sign_color=(0, 150, 255)):
+        # Initiate node
+        rospy.init_node(node_name)
+        #Subscribe to image topic
+        rospy.Subscriber(image_subscription_topic, Image, self.callback)
+        # Create bridge between ROS and OpenCV
+        self.bridge = CvBridge()
+        # Create publisher
+        self.publisher = rospy.Publisher(image_publishing_topic, Image, queue_size=2)
+        
+        	# Orangey-red BGR is [0, 150, 255]
+        self.sign_color = np.array(list(bgr_sign_color), dtype=np.uint8)
+        self.sign_edges = sign_edges
+        
+        # Keep python from exiting
+        rospy.spin()
+        # Close OpenCV windows once rospy.spin() release
+        cv2.destroyAllWindows()
+        
+    #
+    
+    
+    def callback(self, ros_img):
+        try:
+            img = self.bridge.imgmsg_to_cv2(ros_img, 'bgr8')
+        except CvBridgeError as err:
+            print(err)
+            return
+        
+        drawn_img = self.draw_colored_polygons(self, img, self.sign_color, self.sign_edges, hue_tolerance=50, 
+                          blur_kernel_size=11, morph_kernel_size=5, line_color=(0, 255, 0), line_width=3)
+        
+        try:
+            self.publisher.publish(self.bridge.cv2_to_imgmsg(drawn_img, "bgr8"))
+        except CvBridgeError as err:
+            print(err)
+    
+    #
+    
+    
+    def draw_colored_polygons(self, img, bgr_color, n_edges_list, hue_tolerance=15, 
+                              blur_kernel_size=11, morph_kernel_size=5, return_mask=False, line_color=(0, 255, 0),
+                              line_width=3):
+        # Blur image
+        blurred_img = cv2.GaussianBlur(img, (blur_kernel_size, blur_kernel_size), 0)
+        
+        # Get a mask based on a colour (within a set tolerance)
+        mask = self.get_color_mask(blurred_img, bgr_color, hue_tolerance)
+        
+        # cv2.imshow('HSV Mask', mask)
+        
+        # Morphological opening and closing
+        kernel = np.ones((morph_kernel_size, morph_kernel_size), np.uint8)
+        morphed_mask = cv2.morphologyEx(cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel), cv2.MORPH_CLOSE, kernel)
+        
+        contours, hierarchy = cv2.findContours(morphed_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        for contour in contours:
+            # Polygon contour detection based on https://www.pyimagesearch.com/2016/02/08/opencv-shape-detection/
+            peri = cv2.arcLength(contour, True)
+            approx = cv2.approxPolyDP(contour, 0.04 * peri, True)
+            # Check number of approximated corners
+            for n_edges in n_edges_list:
+                if len(approx) == n_edges:
+                    # Draw on img
+                    cv2.drawContours(img, [contour], 0, line_color, line_width)
+        
+        return img
+    
+    #
+    
+    
+    def get_color_mask(self, img, bgr_color, hue_tolerance=15):
+        # Color detection based on https://henrydangprg.com/2016/06/26/color-detection-in-python-with-opencv/
+        hsv_color = self.bgr2hsv(bgr_color)
+        hue = hsv_color[0][0][0]
+        
+        lower_hsv = np.asarray([max(hue-hue_tolerance, 0), 100, 100], dtype=np.uint8)
+        upper_hsv = np.asarray([min(hue+hue_tolerance, 255), 255, 255], dtype=np.uint8)
+        
+        hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        
+        return cv2.inRange(hsv_img, lower_hsv, upper_hsv)
+    
+    #
+    
+    
+    @staticmethod
+    def bgr2hsv(bgr_color):
+        return cv2.cvtColor(np.array(bgr_color, dtype=np.uint8).reshape(1, 1, 3), cv2.COLOR_BGR2HSV)
+
+###
+
+
+if __name__ == '__main__':
+	stop_sign_detection = StopSignDetection('StopSignDetection', '/cf1/camera/image_raw', '/image_stop_sign')

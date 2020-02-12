@@ -1,0 +1,47 @@
+#!/usr/bin/env python
+from __future__ import print_function
+
+import roslib
+import sys
+import rospy
+import cv2
+import numpy as np
+from std_msgs.msg import String
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge, CvBridgeError
+
+
+
+def callback(image):
+	cv_image = bridge.imgmsg_to_cv2(image, 'bgr8')
+	
+	#orange rbg [255 165 0]
+	color_lb = np.array([100, 100, 100])
+	color_ub = np.array([255, 255, 255])
+	
+	blurred_image = cv2.GaussianBlur(cv_image, (11,11), .001)
+
+	hsv = cv2.cvtColor(blurred_image, cv2.COLOR_BGR2HSV)
+
+	mask = cv2.inRange(hsv, color_lb, color_ub)
+	
+	cv2.imshow('HSV Mask', mask)
+	
+	opening = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3,3)))
+	#contours, hierarchy = cv2.findContours(opening, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+	#for (x, y) in contours:
+    	#	cv2.circle(cv_image, (x, y), 1, (255, 0, 0), 3)
+	res = cv2.bitwise_and(cv_image, cv_image, mask= opening)
+	
+	res = res + cv_image
+	pub.publish(bridge.cv2_to_imgmsg(res, "bgr8"))
+	
+
+def main():
+	rospy.Subscriber('/cf1/camera/image_raw', Image, callback)
+	rospy.spin()
+rospy.init_node('detection')
+bridge = CvBridge()
+pub  = rospy.Publisher('/myresult', Image, queue_size=2)
+if __name__ == '__main__':
+	main()

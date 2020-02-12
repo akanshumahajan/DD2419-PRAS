@@ -1,0 +1,56 @@
+#!/usr/bin/env python
+import rospy
+import sys
+import math
+import json
+import tf2_ros
+from std_msgs.msg import String, Header
+from aruco_msgs.msg import MarkerArray
+from tf.transformations import quaternion_from_euler
+from geometry_msgs.msg import TransformStamped, Vector3
+from crazyflie_driver.msg import Position
+
+def go_to_goal(goal_pos):
+	i = 0
+	rate = rospy.Rate(10)
+	while i < 50000:
+		print('publishing msg')
+		pub_goal = rospy.Publisher('/cf1/cmd_position', Position, queue_size=2)
+		pub_goal.publish(goal_pos)
+		i += 1
+	
+def get_goal(coordinates):
+	print('creating msg')
+	goal_pos = Position()
+	goal_pos.header.stamp = rospy.Time.now()
+	goal_pos.x = coordinates[0]
+	goal_pos.y = coordinates[1]
+	goal_pos.yaw = coordinates[2]
+	goal_pos.z = coordinates[3]
+	print(goal_pos)
+	return goal_pos
+
+def main():
+	#list 
+	goal_list = [[0, 0, 0, 0.4], [0, -1, 0, 0.4], [1, 0, 0, 0.4]]
+	rate = rospy.Rate(10)
+	for position in goal_list:
+		goal_pos = get_goal(position)
+		go_to_goal(goal_pos)
+		rate.sleep()
+
+	pos = Position()	
+	pos.header.stamp = rospy.Time.now()
+	pos.x = 0
+	pos.y = 0
+	pos.yaw = 0
+	pos.z = 0.4
+	while not rospy.is_shutdown():
+		pub_goal = rospy.Publisher('/cf1/cmd_position', Position, queue_size=2)
+		pub_goal.publish(pos)
+	rospy.spin()
+
+if __name__ == '__main__':
+	rospy.init_node('fly')
+
+	main()

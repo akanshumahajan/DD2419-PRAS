@@ -1,0 +1,59 @@
+#!/usr/bin/env python
+
+import sys
+import rospy
+from crazyflie_driver.msg import Position
+from geometry_msgs.msg import TransformStamped, PoseStamped
+from aruco_msgs.msg import MarkerArray
+
+pose = None
+
+def callback(read_pose):
+	global pose
+	pose = read_pose
+
+def read_and_control():
+		cmd = raw_input()
+		if cmd == 'a' or 's' or 'd' or 'w':
+			pos = Position()	
+			pos.header.stamp = rospy.Time.now()
+			if cmd == 'w':
+				pos.x = pose.pose.position.x
+				pos.y = pose.pose.position.y
+				pos.yaw = 0
+				pos.z = pose.pose.position.z + 0.5
+			
+			if cmd == 's':
+				pos.x = pose.pose.position.x
+				pos.y = pose.pose.position.y
+				pos.yaw = 0
+				pos.z = pose.pose.position.z - 0.05
+			if cmd == 'a':
+				pos.x = pose.pose.position.x + 0.05
+				pos.y = pose.pose.position.y
+				pos.yaw = 0
+				pos.z = pose.pose.position.z 
+			if cmd == 'd':
+				pos.x = pose.pose.position.x
+				pos.y = pose.pose.position.y + 0.05
+				pos.yaw = 0
+				pos.z = pose.pose.position.z
+			pub.publish(pos)
+
+#def publish(pos):
+#	while True:
+		#rate = rospy.Rate(20)
+		#pub.publish(pos)
+		
+		
+rospy.init_node('keyboard_control')
+rospy.Subscriber('/cf1/pose', PoseStamped, callback)
+pub = rospy.Publisher('/cf1/cmd_position', Position, queue_size=2)
+
+def main():
+	print('Control drone with w, a,s and d')
+	while not rospy.is_shutdown():
+		read_and_control()
+
+if __name__ == '__main__':
+	main()
