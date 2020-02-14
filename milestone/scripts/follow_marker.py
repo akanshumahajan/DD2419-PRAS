@@ -22,6 +22,12 @@ marker_id = None
 # pos = Position()
 position = Position()
 
+currentPose = None
+
+def updateCurrentPose(msg):
+    global currentPose
+    currentPose = msg.pose
+
 def goal_callback(data):
     global goal,marker_id
     marker_pos = Marker()
@@ -37,8 +43,8 @@ def goal_callback(data):
     goal_camera.pose.position= marker_pos.pose.pose.position
     goal_camera.pose.orientation = marker_pos.pose.pose.orientation
 
-    rospy.loginfo("goal camera")
-    rospy.loginfo(goal_camera)
+    # rospy.loginfo("goal camera")
+    # rospy.loginfo(goal_camera)
     
 
     if not tf_buf.can_transform("cf1/base_link", 'cf1/camera_link', rospy.Time(0.0)):
@@ -49,8 +55,8 @@ def goal_callback(data):
     goal_base = tf_buf.transform(goal_camera,'cf1/base_link')
     # # goal_base = tf_buf.lookup_transform("cf1/base_link","cf1/camera_link",rospy.Time(0.0))
     
-    rospy.loginfo("goal_base")
-    rospy.loginfo(goal_base)
+    # rospy.loginfo("goal_base")
+    # rospy.loginfo(goal_base)
 
     if not tf_buf.can_transform("cf1/odom", 'cf1/base_link', rospy.Time(0.0)):
         rospy.logwarn_throttle(5.0, 'No transform from %s to cf1/odom' % goal_base.header.frame_id)
@@ -58,10 +64,10 @@ def goal_callback(data):
 
     goal_odom = tf_buf.transform(goal_base,'cf1/odom')
 
-    rospy.loginfo("goal odom")
-    rospy.loginfo(goal_odom)
+    # rospy.loginfo("goal odom")
+    # rospy.loginfo(goal_odom)
 
-    # goal = goal_odom
+    goal = goal_odom
 
 
     broadcaster1 = tf2_ros.StaticTransformBroadcaster()
@@ -80,31 +86,63 @@ def goal_callback(data):
 
 def publish_cmd(cmd):
     global goal,position
-    pub_cmd(cmd)
+    pub_cmd.publish(cmd)
     if goal:
-        hover.zDistance = goal.zDistance
+        position.z = goal.pose.position.z
     goal = None
         
 
+def getCmd():
+    global goal,currentPose
+    while currentPose == None or goal==None:
+        continue
+    cmd = Position()
+
+    cmd.header.stamp = rospy.Time.now()
+    cmd.header.frame_id = "cf1/odom"
+
+    cmd.x = goal.pose.position.x
+    cmd.y = goal.pose.position.y
+    # cmd.z = currentPose.position.z
+    cmd.z = 0.3
+
+    _,_,yaw = euler_from_quaternion((goal.pose.orientation.x,
+                                    goal.pose.orientation.y,
+                                    goal.pose.orientation.z,
+                                    goal.pose.orientation.w))
+    cmd.yaw = math.degrees(yaw)
+
+    return cmd
 
 rospy.init_node("follow_marker",anonymous=True)
 rospy.Subscriber("/aruco/markers",MarkerArray,goal_callback)
+
+pose_sub = rospy.Subscriber("/cf1/pose",PoseStamped,updateCurrentPose)
 
 pub_cmd = rospy.Publisher('/cf1/cmd_position', Position, queue_size=2)
 
 tf_buf = tf2_ros.Buffer()
 tf_listener = tf2_ros.TransformListener(tf_buf)
 
+
+
 def main():
     # global pub_cmd
     rate = rospy.Rate(20)
 
     position = Position()
-    position.z = 0.4
+    position.x = 0.5
+    position.y = 0.5
+    position.z = 0.3
     
     while not rospy.is_shutdown():
+        # rospy.loginfo(goal)
+        # rospy.loginfo(currentPose)
         if goal:
-            publish_cmd(goal)
+            cmd = getCmd()
+            rospy.loginfo(cmd)
+            cmd.x -= 0.4
+            publish_cmd(cmd)
         else:
             pub_cmd.publish(position)
         rate.sleep()

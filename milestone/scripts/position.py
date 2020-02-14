@@ -19,11 +19,17 @@ import readchar
 from std_msgs.msg import Empty
 
 currentPose = None
+goal = None
+
+def setupGoal(msg):
+    global goal
+    goal = msg
 
 def updateCurrentPose(msg):
     global currentPose
     currentPose = msg.pose
     # rospy.loginfo(currentPose)
+
 
 
 def getCmdFromPose():
@@ -47,37 +53,51 @@ def getCmdFromPose():
     return cmd
 
     
-def keys():
+def experiment():
     rate = rospy.Rate(10)
     cmd = getCmdFromPose()
-    pub_cmd.publish(cmd)
 
+    count = 0
     while not rospy.is_shutdown():
-        # key = readchar.readkey()
-        # k = key.lower()
-
-        # if k == "a":
-        #     cmd.x -= 0.1
-        # elif k == "d":
-        #     cmd.x += 0.1
-        # elif k == "w":
-        #     cmd.y += 0.1
-        # elif k == "s":
-        #     cmd.y -= 0.1
-        # elif k == 'q':
-        #     pub_stop.publish(Empty())
-        #     break
-
+        if count < 30:
+            count+=1
+            # cmd.x += 0.3
+        elif count < 50:
+            count+=1
+            cmd.x = 0.8
+        elif count < 80:
+            count+=1
+            cmd.yaw = 180
+        elif count < 100:
+            count += 1
+            cmd.x = 0.5
+        else:
+            pub_stop.publish(Empty())
+            break
         rospy.loginfo(cmd)
         pub_cmd.publish(cmd)
         rate.sleep()
 
-
-
+def keys():
+    global goal
+    rate = rospy.Rate(10)
+    cmd = Position()
+    cmd.x = 0.5
+    cmd.y = 0.5
+    cmd.z = 0.3
+    cmd.yaw = 0.0
+    while not rospy.is_shutdown():
+        if goal:
+            pub_cmd.publish(goal)
+        else:
+            pub_cmd.publish(cmd)
+        
+        rate.sleep()
+        
 rospy.init_node("drone_position",anonymous=True)
 
 pose_sub = rospy.Subscriber("/cf1/pose",PoseStamped,updateCurrentPose)
-# sub = rospy.Subscriber("keyboard_control",Position,callback=callback)
+sub = rospy.Subscriber("keyControl",Position,callback=setupGoal)
 
 pub_cmd = rospy.Publisher("/cf1/cmd_position",Position,queue_size=1)
 pub_stop = rospy.Publisher('stop', Empty, queue_size=1)
@@ -86,7 +106,10 @@ pub_stop = rospy.Publisher('stop', Empty, queue_size=1)
 
 if __name__ == '__main__':
     try:
+        # keys() for keyboard control
         keys()
+        # experiment for 
+        # experiment()
     except rospy.ROSInterruptException:
         pass
 
