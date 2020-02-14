@@ -47,7 +47,7 @@ def draw_colored_polygons(img, n_edges_list, hsv_min, hsv_max,
     #       self.count = 0
     
     # Find contours
-    contours, _ = cv2.findContours(mask2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    _, contours, _ = cv2.findContours(mask2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
     for contour in contours:
         # Polygon contour detection based on https://www.pyimagesearch.com/2016/02/08/opencv-shape-detection/
@@ -91,7 +91,7 @@ def bgr2hsv(bgr_color):
 
 class StopSignDetection:
     def __init__(self, node_name, raw_image_subscription_topic, image_publishing_topic, mask_publishing_topic, 
-                 sign_edges=8, bgr_sign_color=(17, 15, 81), hue_tolerance=15,  lower_sv_threshold=30, 
+                 hsv_min, hsv_max, sign_edges=8, bgr_sign_color=(17, 15, 81), 
                  epsilon_length_modifier=0.03, opencv_imshow=True):
         # Create bridge between ROS and OpenCV
         self.bridge = CvBridge()
@@ -107,11 +107,14 @@ class StopSignDetection:
         self.epsilon_length_modifier = epsilon_length_modifier
         
         # Transforms BGR to HSV
-        hsv_sign_color = bgr2hsv(np.array(list(bgr_sign_color), dtype=np.uint8))
+        # hsv_sign_color = bgr2hsv(np.array(list(bgr_sign_color), dtype=np.uint8))
         
-        self.hsv_max = np.asarray([min(hsv_sign_color[0][0][0] + hue_tolerance, 179), 255, 255], dtype=np.float64)
-        self.hsv_min = np.asarray([max(hsv_sign_color[0][0][0] - hue_tolerance, 0), lower_sv_threshold, 
-                                   lower_sv_threshold], dtype=np.float64)
+        # self.hsv_max = np.asarray([min(hsv_sign_color[0][0][0] + hue_tolerance, 179), 255, 255], dtype=np.float64)
+        # self.hsv_min = np.asarray([max(hsv_sign_color[0][0][0] - hue_tolerance, 0), lower_sv_threshold, 
+        #                            lower_sv_threshold], dtype=np.float64)
+        
+        self.hsv_min = hsv_min
+        self.hsv_max = hsv_max
         
         self.opencv_imshow = opencv_imshow
         if self.opencv_imshow:
@@ -233,14 +236,16 @@ class StopSignDetection:
 
 if __name__ == '__main__':
     # Set parameters
-    bgr_sign_color=(102, 132, 211)
-    hue_tolerance=25
+    # bgr_sign_color=(102, 132, 211)
+    # hue_tolerance=25
     sign_edges=(0,)
-    lower_sv_threshold=35
+    # lower_sv_threshold=35
     epsilon_length_modifier=0.03
+    
+    hsv_min = np.array([0, 35, 35], dtype=np.uint8)
+    hsv_max = np.array([20, 255, 255], dtype=np.uint8)
     
     # Launch class
     stop_sign_detection = StopSignDetection('StopSignDetection', '/cf1/camera/image_raw', '/image_stop_sign', 
-                                            '/mask_stop_sign', 
-                                            hue_tolerance=hue_tolerance,  lower_sv_threshold=lower_sv_threshold, 
+                                            '/mask_stop_sign', hsv_min, hsv_max,
                                             epsilon_length_modifier=epsilon_length_modifier)
