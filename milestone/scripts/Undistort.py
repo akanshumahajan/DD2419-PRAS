@@ -23,7 +23,7 @@ class Undistort(object):
         self.camera_matrix = np.identity(3, dtype=np.float64)
         self.distortion = np.ones((1, 5), dtype=np.float64)
         self.calibration_camera_matrix = np.identity(3, dtype=np.float64)
-        self.roi = (1, 1, 1, 1)
+        self.roi = (0, 0, 0, 0)
         
         # Camera info subscription
         rospy.Subscriber(camera_info_subscription_topic, CameraInfo, self.camera_info_callback)
@@ -63,10 +63,10 @@ class UndistortNode(Undistort):
         # Create bridge between ROS and OpenCV
         self.bridge = CvBridge()
         # Camera feed subscription
-        rospy.Subscriber(raw_image_subscription_topic, Image, self.raw_image_callback)
+        self.raw_image_subscriber = rospy.Subscriber(raw_image_subscription_topic, Image, self.raw_image_callback)
         
         # Undistorted publisher
-        self.publisher_undistorted = rospy.Publisher(undistorted_image_publishing_topic, Image, queue_size=2)
+        self.undistorted_publisher = rospy.Publisher(undistorted_image_publishing_topic, Image, queue_size=2)
         
         # Keep python from exiting
         try:
@@ -86,12 +86,12 @@ class UndistortNode(Undistort):
         
         if undist_img is not None:
             try:
-                self.publisher_undistorted.publish(self.bridge.cv2_to_imgmsg(undist_img, "bgr8"))
+                self.undistorted_publisher.publish(self.bridge.cv2_to_imgmsg(undist_img, "bgr8"))
             except CvBridgeError as err:
                 print(repr(err))
         
     
-#
+###
         
     
 if __name__ == '__main__':
