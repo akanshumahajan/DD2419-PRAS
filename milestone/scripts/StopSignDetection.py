@@ -13,58 +13,6 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 
 ###
-    
-    
-def draw_colored_polygons(img, n_edges_list, hsv_min, hsv_max, 
-                          blur_kernel_size=5, morph_kernel_size=5, epsilon_length_modifier = 0.03, 
-                          line_color=(0, 255, 0), line_width=3, min_size=2800):
-    # Blur image
-    blurred_img = cv2.GaussianBlur(img, (blur_kernel_size, blur_kernel_size), 0)
-    
-    # Get a mask based on a colour (within a set tolerance)
-    mask = get_color_mask(blurred_img, hsv_min, hsv_max)
-    
-    # Morphological opening and closing
-    kernel = np.ones((morph_kernel_size, morph_kernel_size), np.uint8)
-    # Open
-    morphed_open = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-    # Close
-    morphed_mask = cv2.morphologyEx(morphed_open, cv2.MORPH_CLOSE, kernel)
-    
-    nb_components, output, stats, centroids = cv2.connectedComponentsWithStats(morphed_mask, connectivity=8)
-    sizes = stats[1:, -1]
-    nb_components = nb_components - 1
-    
-    mask2 = np.zeros((output.shape), np.uint8)
-    for i in range(0, nb_components):
-        if sizes[i] >= min_size:
-            mask2[output == i + 1] = 255
-    #         self.count += 1
-    #         break
-    
-    # if self.count == 10:
-    #       print("find image")
-    #       self.count = 0
-    
-    # Find contours
-    _, contours, _ = cv2.findContours(mask2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    
-    for contour in contours:
-        # Polygon contour detection based on https://www.pyimagesearch.com/2016/02/08/opencv-shape-detection/
-        perimiter_length = cv2.arcLength(contour, closed=True)
-        approx = cv2.approxPolyDP(contour, perimiter_length * epsilon_length_modifier, closed=True)
-        # Check number of approximated corners
-        for n_edges in n_edges_list:
-            if n_edges != 0:
-                if len(approx) == n_edges:
-                    # Draw on img
-                    cv2.drawContours(img, [contour], 0, line_color, line_width)
-            else:
-                 cv2.drawContours(img, [contour], 0, line_color, line_width)
-    
-    return img, mask2
-
-#
 
 
 def get_color_mask(img, hsv_min, hsv_max):
@@ -120,6 +68,8 @@ class StopSignDetection:
         if self.opencv_imshow:
             self.firstrun = True
         
+        self.i = 0
+        
         # Initiate node
         rospy.init_node(node_name)
         #Subscribe to image topic
@@ -143,11 +93,11 @@ class StopSignDetection:
             print(repr(err))
             return
         
-        drawn_img, mask = draw_colored_polygons(img, self.sign_edges, 
-                                                hsv_min=self.hsv_min, hsv_max=self.hsv_max, 
-                                                blur_kernel_size=5, morph_kernel_size=5, 
-                                                epsilon_length_modifier=self.epsilon_length_modifier, 
-                                                line_color=(0, 255, 0),  line_width=3)
+        drawn_img, mask = self.draw_colored_polygons(img, self.sign_edges, 
+                                                     hsv_min=self.hsv_min, hsv_max=self.hsv_max, 
+                                                     blur_kernel_size=5, morph_kernel_size=5, 
+                                                     epsilon_length_modifier=self.epsilon_length_modifier, 
+                                                     line_color=(0, 255, 0),  line_width=3)
         
         drawn_mask = np.full(drawn_img.shape, 255, dtype=np.uint8)
         drawn_mask = cv2.bitwise_and(drawn_img, drawn_mask, mask=mask)
@@ -175,6 +125,70 @@ class StopSignDetection:
                 cv2.imwrite('/home/ff/Pictures/img2.jpg', img)
     
     #
+                
+                
+    def draw_colored_polygons(self, img, n_edges_list, hsv_min, hsv_max, 
+                              blur_kernel_size=5, morph_kernel_size=5, epsilon_length_modifier = 0.03, 
+                              line_color=(0, 255, 0), line_width=3, min_size=2800):
+        # Blur image
+        blurred_img = cv2.GaussianBlur(img, (blur_kernel_size, blur_kernel_size), 0)
+        
+        # Get a mask based on a colour (within a set tolerance)
+        mask = get_color_mask(blurred_img, hsv_min, hsv_max)
+        
+        # Morphological opening and closing
+        kernel = np.ones((morph_kernel_size, morph_kernel_size), np.uint8)
+        # Open
+        morphed_open = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+        # Close
+        morphed_mask = cv2.morphologyEx(morphed_open, cv2.MORPH_CLOSE, kernel)
+        
+        nb_components, output, stats, centroids = cv2.connectedComponentsWithStats(morphed_mask, connectivity=8)
+        sizes = stats[1:, -1]
+        nb_components = nb_components - 1
+        
+        mask2 = np.zeros((output.shape), np.uint8)
+        for i in range(0, nb_components):
+            if sizes[i] >= min_size:
+                mask2[output == i + 1] = 255
+        #         self.count += 1
+        #         break
+        
+        # if self.count == 10:
+        #       print("find image")
+        #       self.count = 0
+        
+        # Find contours
+        try:
+            _, contours, _ = cv2.findContours(mask2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        except ValueError:
+            contours, _ = cv2.findContours(mask2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        for contour in contours:
+            # print(contour.shape)  # [~70, 1, 2]
+            subimage_min = contour.min(axis=0)[0]
+            subimage_max = contour.max(axis=0)[0]
+            margin = 10
+            subimage = img[max(subimage_min[1] - margin, 0):min(subimage_max[1] + margin, img.shape[1]), 
+                           max(subimage_min[0] - margin, 0):min(subimage_max[0] + margin, img.shape[0]),:]
+            cv2.imwrite('/home/ff/Pictures/subimages/%d.jpg' % self.i, subimage)
+            self.i += 1
+            
+            # Polygon contour detection based on https://www.pyimagesearch.com/2016/02/08/opencv-shape-detection/
+            perimiter_length = cv2.arcLength(contour, closed=True)
+            approx = cv2.approxPolyDP(contour, perimiter_length * epsilon_length_modifier, closed=True)
+            # Check number of approximated corners
+            for n_edges in n_edges_list:
+                if n_edges != 0:
+                    if len(approx) == n_edges:
+                        # Draw on img
+                        # cv2.drawContours(img, [contour], 0, line_color, line_width)
+                        pass
+                else:
+                     # cv2.drawContours(img, [contour], 0, line_color, line_width)
+                    pass
+        
+        return img, mask2
             
             
     # def on_mouse_click(self, event, x, y, flags, img):
