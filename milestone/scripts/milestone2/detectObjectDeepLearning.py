@@ -18,6 +18,7 @@ from testObjectDetection import test_object
 
 from image_to_camera import image_to_camera
 from CameraInfoClass import CameraInfoClass
+from PoseInfoClass import PoseInfoCLass
 
 class image_converter:
 
@@ -28,6 +29,7 @@ class image_converter:
     self.image_sub = rospy.Subscriber("/cf1/camera/image_raw", Image, self.callback)
     
     self.camera_info = CameraInfoClass()
+    self.pose_info = PoseInfoCLass()
 
     self.count = 0
 
@@ -44,7 +46,8 @@ class image_converter:
         cv2.rectangle(cv_image,(res[0][0],res[0][1]),(res[0][2],res[0][3]),color=color,thickness=2)
         
       # Find the objects' position
-      obj_pos_and_angle = image_to_camera(res, label, self.camera_info.camera_matrix, pitch=0, roll=0)
+      roll, pitch, _ = self.pose_info.get_angles()
+      obj_pos_and_angle = image_to_camera(res, label, self.camera_info.camera_matrix, pitch, roll)
       # TODO pitch/roll
       print(obj_pos_and_angle)
       

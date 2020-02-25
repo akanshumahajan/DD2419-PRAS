@@ -22,6 +22,7 @@ class PoseInfoCLass:
         
         
     def get_angles(self):
+        # Roll, Pitch, Yaw
         return euler_from_quaternion((self.pose.pose.orientation.x,
                                       self.pose.pose.orientation.y,
                                       self.pose.pose.orientation.z,
