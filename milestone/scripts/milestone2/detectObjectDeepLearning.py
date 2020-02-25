@@ -39,7 +39,7 @@ class image_converter:
       res,label = test_object(cv_image)
       # print(res)
       color = (255, 0, 0) 
-      # cv2.imwrite("cv_image.jpg",cv_image)
+      
       if res.size!=0:
         cv2.rectangle(cv_image,(res[0][0],res[0][1]),(res[0][2],res[0][3]),color=color,thickness=2)
         
