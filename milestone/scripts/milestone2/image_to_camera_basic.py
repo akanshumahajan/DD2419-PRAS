@@ -9,7 +9,27 @@ Created on Wed Feb 19 15:10:34 2020
 import numpy as np
 
 
-def image_to_camera(boundry_box, camera_matrix, obj_height, obj_width):
+def get_obj_info(obj_type):
+    # obj_type: height, width, shape
+    #
+    # 1: No bicycle
+    
+    return {1: (0.192, 0.192, 'circle')}[obj_type]
+
+
+def image_to_camera(boundry_box_list, obj_type_list, camera_matrix, pitch=None, roll=None):
+    return_values = []
+    for i in range(0, len(obj_type_list)):
+        
+        boundry_box = np.asarray([boundry_box_list[i][0:2], [boundry_box_list[i][2], boundry_box_list[i][1]], 
+                                  boundry_box_list[i][2:4], [boundry_box_list[i][0], boundry_box_list[i][3]]], 
+                                 dtype=np.float64)
+        obj_height, obj_width, obj_shape = get_obj_info(obj_type_list[i])
+        return_values.append(image_to_camera_per_object(boundry_box, camera_matrix, obj_height, obj_width))
+    return return_values
+
+
+def image_to_camera_per_object(boundry_box, camera_matrix, obj_height, obj_width):
     # The points of the boundry box
     polygon_points = np.ones((3, len(boundry_box)), dtype=np.float64)
     for i in range(0, len(boundry_box)):
@@ -58,7 +78,7 @@ if __name__ == '__main__':
     obj_height, obj_width = (0.2, 0.2)
     
     boundry_box = np.array([[320-50, 240-50], [320+50, 240-50], [320+50, 240+50], [320-50, 240+50]], dtype=np.float64)
-    return_value = image_to_camera(boundry_box, calibration_camera_matrix, obj_height, obj_width)
+    return_value = image_to_camera_per_object(boundry_box, calibration_camera_matrix, obj_height, obj_width)
     print('\nCenter position:')
     print(return_value[0])
     print('\nPossible rotational angles in degrees (compared to +z, so 180 is perfectly facing the camera):')
