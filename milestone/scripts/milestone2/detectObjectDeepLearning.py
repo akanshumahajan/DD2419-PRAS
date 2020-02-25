@@ -14,14 +14,41 @@ import tf2_ros
 from geometry_msgs.msg import PoseStamped, Vector3
 from crazyflie_gazebo.msg import Position
 import matplotlib.pyplot as plt
-
+import math
 from testObjectDetection import test_object
 import tf2_geometry_msgs
 import geometry_msgs
+from tf.transformations import euler_from_quaternion
 
-from image_to_camera import image_to_camera
+from image_to_camera_basic import image_to_camera
 from CameraInfoClass import CameraInfoClass
 from PoseInfoClass import PoseInfoCLass
+
+
+
+
+
+def getCmd(goal_pose):    
+    cmd = Position()
+
+    cmd.header.stamp = rospy.Time.now()
+    cmd.header.frame_id = "cf1/odom"
+
+    if goal_pose!=None:       
+      cmd.x = goal_pose.pose.position.x - 0.5
+      cmd.y = goal_pose.pose.position.y
+      # cmd.z = currentPose.position.z
+      cmd.z = 0.3
+    
+
+    _,_,yaw = euler_from_quaternion((goal_pose.pose.orientation.x,
+                                    goal_pose.pose.orientation.y,
+                                    goal_pose.pose.orientation.z,
+                                    goal_pose.pose.orientation.w))
+    yaw = 0.0
+    cmd.yaw = math.degrees(yaw)
+
+    return cmd
 
 
 def transform_from_camera_to_map(data):
@@ -57,25 +84,26 @@ def transform_from_camera_to_map(data):
         rospy.logwarn_throttle(5.0, 'No transform from %s to map' % goal_odom.header.frame_id)
         return
     
-    goal_map = tf_buf.transform(goal_odom,'map')
+    goal_pose = tf_buf.transform(goal_odom,'map')
+    cmd = getCmd(goal_pose)
+
+    return cmd
     
-    
-    print(goal_map)
-    broadcaster1 = tf2_ros.StaticTransformBroadcaster()
-    t1 = geometry_msgs.msg.TransformStamped()
+    # broadcaster1 = tf2_ros.StaticTransformBroadcaster()
+    # t1 = geometry_msgs.msg.TransformStamped()
 
-    t1 = geometry_msgs.msg.TransformStamped()
-    t1.header.stamp = rospy.Time(0.0)
-    t1.header.frame_id = "map"
-    t1.child_frame_id = "detectObject"
+    # t1 = geometry_msgs.msg.TransformStamped()
+    # t1.header.stamp = rospy.Time(0.0)
+    # t1.header.frame_id = "map"
+    # t1.child_frame_id = "detectObject"
 
-    t1.transform.translation = goal_map.pose.position
-    t1.transform.rotation.x = 0.0#goal_map.pose.orientation
-    t1.transform.rotation.y = 0.0
-    t1.transform.rotation.z = 0.0
-    t1.transform.rotation.w = 1.0
+    # t1.transform.translation = goal_map.pose.position
+    # t1.transform.rotation.x = 0.0#goal_map.pose.orientation
+    # t1.transform.rotation.y = 0.0
+    # t1.transform.rotation.z = 0.0
+    # t1.transform.rotation.w = 1.0
 
-    broadcaster1.sendTransform(t1)
+    # broadcaster1.sendTransform(t1)
     
 
 class image_converter:
@@ -85,12 +113,18 @@ class image_converter:
 
     self.bridge = CvBridge ()
     self.image_sub = rospy.Subscriber("/cf1/camera/image_raw", Image, self.callback)
+    self.pub_cmd = rospy.Publisher('/cf1/cmd_position', Position, queue_size=2)
     
     # Classes used to get the camera matrix and the pitch and roll off the drone in the odom frame
     self.camera_info = CameraInfoClass()
     self.pose_info = PoseInfoCLass()
 
     self.count = 0
+    self.cmd_old = Position()
+    self.cmd_old.x = 0.5
+    self.cmd_old.y = 0.5
+    self.cmd_old.z = 0.3
+    self.cmd_old.yaw = 0.0 
 
   def callback (self, data):
     # Convert the image from OpenCV to ROS format
@@ -111,13 +145,23 @@ class image_converter:
       roll, pitch, _ = self.pose_info.get_angles()
       obj_pos_and_angle = image_to_camera(res, label, self.camera_info.camera_matrix, pitch, roll)
       # print(obj_pos_and_angle)
-      if obj_pos_and_angle:
-        transform_from_camera_to_map(obj_pos_and_angle)
+      rate = rospy.Rate(20)
       
-      print(roll,pitch,obj_pos_and_angle)
+      if obj_pos_and_angle:
+        cmd = transform_from_camera_to_map(obj_pos_and_angle)
+        self.cmd_old = cmd
+        print(cmd)
+      else:
+        # self.pub_cmd.publish(self.cmd_old)
+        print(self.cmd_old)
+        
+      self.pub_cmd.publish(self.cmd_old)
+      rate.sleep()
+      # print(roll,pitch,obj_pos_and_angle)
       
       # self.image_pub(cv_image)
       self.image_pub.publish(self.bridge.cv2_to_imgmsg(cv_image, "bgr8"))
+      
       
     except CvBridgeError as e:
       print(repr(e))

@@ -34,5 +34,5 @@ class PoseInfoCLass:
     
     
     def get_pose_info(self):
-        return *self.get_position(), *self.get_angles()
+        return self.get_position(), self.get_angles()
         
