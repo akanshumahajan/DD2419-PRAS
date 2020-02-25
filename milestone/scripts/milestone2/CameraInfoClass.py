@@ -9,7 +9,6 @@ Created on Tue Feb 18 13:33:31 2020
 import rospy
 import numpy as np
 from sensor_msgs.msg import CameraInfo
-from sensor_msgs.msg import Image
 
 ###
 

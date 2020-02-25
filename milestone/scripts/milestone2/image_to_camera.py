@@ -179,7 +179,7 @@ if __name__ == '__main__':
                                           [  0.        , 220.78075211, 240.],
                                           [  0.        ,   0.        ,   1.]])
     
-    obj_height, obj_width, obj_shape = (0.2, 0.2, 'circle')
+    obj_height, obj_width, obj_shape = (0.192, 0.192, 'circle')
     pitch, roll = (0, 0)  # In radians according to the "right-hand rule"
     boundry_box = np.array([[320-50, 240-50], [320+50, 240-50], [320+50, 240+50], [320-50, 240+50]], dtype=np.float64)
     
