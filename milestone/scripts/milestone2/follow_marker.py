@@ -91,7 +91,7 @@ def publish_cmd(cmd):
         position.z = goal.pose.position.z
     goal = None
         
-
+# get cmd from poseStamped
 def getCmd():
     global goal,currentPose
     while currentPose == None or goal==None:
@@ -129,7 +129,7 @@ tf_listener = tf2_ros.TransformListener(tf_buf)
 def main():
     # global pub_cmd
     rate = rospy.Rate(20)
-
+    # set the initial position height to 0.3
     position = Position()
     position.x = 0.5
     position.y = 0.5
