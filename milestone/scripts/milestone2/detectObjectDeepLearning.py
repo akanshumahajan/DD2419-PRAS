@@ -28,6 +28,7 @@ class image_converter:
     self.bridge = CvBridge ()
     self.image_sub = rospy.Subscriber("/cf1/camera/image_raw", Image, self.callback)
     
+    # Classes used to get the camera matrix and the pitch and roll off the drone in the odom frame
     self.camera_info = CameraInfoClass()
     self.pose_info = PoseInfoCLass()
 
@@ -55,7 +56,7 @@ class image_converter:
       self.image_pub.publish(self.bridge.cv2_to_imgmsg(cv_image, "bgr8"))
       
     except CvBridgeError as e:
-      print (e)
+      print(repr(e))
 
 
 def detectX(args):
