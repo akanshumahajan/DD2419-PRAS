@@ -187,7 +187,7 @@ def image_to_camera_per_object(boundry_box, camera_matrix, obj_height, obj_width
             # Angle (positive or negative) compared to -z
             diff_angle = np.pi/2. - np.arcsin(depth_width/obj_width)
             # Rotation compared to +z
-            rotations = (np.pi - diff_angle, np.pi + diff_angle)
+            rotations = (np.pi - diff_angle, -np.pi + diff_angle)
     
     else:
         # TODO Take the rotation of the corners and their inpact on the boundry box into account
