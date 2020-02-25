@@ -31,7 +31,7 @@ from PoseInfoClass import PoseInfoCLass
 def getCmd(goal_pose):    
     cmd = Position()
 
-    cmd.header.stamp = rospy.Time.now()
+    cmd.header.stamp = goal_pose.header.stamp
     cmd.header.frame_id = "cf1/odom"
 
     if goal_pose!=None:       
@@ -51,8 +51,9 @@ def getCmd(goal_pose):
     return cmd
 
 
-def transform_from_camera_to_map(data):
+def transform_from_camera_to_map(data, image_timestamp):
     goal_camera = PoseStamped()
+    goal_camera.header.stamp = image_timestamp
     goal_camera.header.frame_id = "cf1/camera_link"
 
     goal_camera.pose.position.x = data[0][0][0]
@@ -131,6 +132,7 @@ class image_converter:
     try:
       cv_image = self.bridge.imgmsg_to_cv2 (data, "bgr8")
       # print(cv_image)
+      image_timestamp = rospy.Time.now()
       res,label = test_object(cv_image)
       # print(res)
       color = (255, 0, 0) 
@@ -148,7 +150,7 @@ class image_converter:
       rate = rospy.Rate(20)
       
       if obj_pos_and_angle:
-        cmd = transform_from_camera_to_map(obj_pos_and_angle)
+        cmd = transform_from_camera_to_map(obj_pos_and_angle, image_timestamp)
         self.cmd_old = cmd
         print(cmd)
       else:
