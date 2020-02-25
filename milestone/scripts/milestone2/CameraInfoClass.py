@@ -14,7 +14,7 @@ from sensor_msgs.msg import CameraInfo
 
 
 class CameraInfoClass(object):
-    def __init__(self, camera_info_subscription_topic):
+    def __init__(self, camera_info_subscription_topic='/cf1/camera/camera_info'):
         self.image_height = None
         self.image_width = None
         self.camera_matrix = np.identity(3, dtype=np.float64)
