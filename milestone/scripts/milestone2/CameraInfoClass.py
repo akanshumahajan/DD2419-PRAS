@@ -9,7 +9,6 @@ Created on Tue Feb 18 13:33:31 2020
 import rospy
 import numpy as np
 from sensor_msgs.msg import CameraInfo
-from sensor_msgs.msg import Image
 
 ###
 
@@ -21,7 +20,7 @@ class CameraInfoClass(object):
         self.camera_matrix = np.identity(3, dtype=np.float64)
         self.distortion = np.ones((1, 5), dtype=np.float64)
         # self.calibration_camera_matrix = np.identity(3, dtype=np.float64)
-        self.roi = (0, 0, 0, 0)
+        # self.roi = (0, 0, 0, 0)
         
         # Camera info subscription
         rospy.Subscriber(camera_info_subscription_topic, CameraInfo, self.camera_info_callback)
