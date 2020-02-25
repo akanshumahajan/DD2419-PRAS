@@ -14,6 +14,15 @@ from scipy.optimize import least_squares
 ###
 
 
+def get_obj_info(obj_type):
+    # obj_type: height, width, shape
+    #
+    # 1: No bicycle
+    
+    return {1: (0.192, 0.192, 'circle')}[obj_type]
+    
+
+
 def get_rotational_matrix_from_rotational_vector(rot_vector, order=("x", "y", "z")):
     # Code besed on rotation of the +x axis
     if len(rot_vector) != 3:
@@ -80,7 +89,20 @@ def normalize(vector):
 ###
 
 
-def image_to_camera(boundry_box, camera_matrix, obj_height, obj_width, obj_shape, pitch, roll):
+def image_to_camera(boundry_box_list, obj_type_list, camera_matrix, pitch, roll):
+    return_values = []
+    for i in range(0, len(obj_type_list)):
+        
+        boundry_box = np.asarray([boundry_box_list[i][0:2], [boundry_box_list[i][2], boundry_box_list[i][1]], 
+                                  boundry_box_list[i][2:4], [boundry_box_list[i][0], boundry_box_list[i][3]]], 
+                                 dtype=np.float64)
+        obj_height, obj_width, obj_shape = get_obj_info(obj_type_list[i])
+        return_values.append(image_to_camera_per_object(boundry_box, camera_matrix, obj_height, obj_width, obj_shape, 
+                                                        pitch, roll))
+    return return_values
+
+
+def image_to_camera_per_object(boundry_box, camera_matrix, obj_height, obj_width, obj_shape, pitch, roll):
     # The points of the boundry box
     polygon_points = np.ones((3, len(boundry_box)), dtype=np.float64)
     for i in range(0, len(boundry_box)):
@@ -179,15 +201,15 @@ if __name__ == '__main__':
                                           [  0.        , 220.78075211, 240.],
                                           [  0.        ,   0.        ,   1.]])
     
-    obj_height, obj_width, obj_shape = (0.192, 0.192, 'circle')
-    pitch, roll = (0, 0)  # In radians according to the "right-hand rule"
-    boundry_box = np.array([[320-50, 240-50], [320+50, 240-50], [320+50, 240+50], [320-50, 240+50]], dtype=np.float64)
+    pitch, roll = (0, 0)  # In radians
+    boundry_box_list = np.array([[320-50, 240-50, 320+50, 240+50]], dtype=np.float64)
+    obj_type_list = [1]
     
-    return_value = image_to_camera(boundry_box, calibration_camera_matrix, obj_height, obj_width, obj_shape, 
-                                    pitch, roll)
+    return_value = image_to_camera(boundry_box_list, obj_type_list, calibration_camera_matrix, pitch, roll)
     
+    print(return_value)
     print('\nCenter position:')
-    print(return_value[0])
+    print(return_value[0][0])
     print('\nPossible rotational angles in degrees (compared to +z, so 180 is perfectly facing the camera):')
-    print(np.degrees(return_value[1][0]))
-    print(np.degrees(return_value[1][1]))
+    print(np.degrees(return_value[0][1][0]))
+    print(np.degrees(return_value[0][1][1]))
