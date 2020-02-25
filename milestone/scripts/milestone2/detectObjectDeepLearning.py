@@ -46,6 +46,7 @@ class image_converter:
       # Find the objects' position
       obj_pos_and_angle = image_to_camera(res, label, self.camera_info.camera_matrix, pitch=0, roll=0)
       # TODO pitch/roll
+      # print(self.camera_info.camera_matrix)
       print(obj_pos_and_angle)
       
       # self.image_pub(cv_image)

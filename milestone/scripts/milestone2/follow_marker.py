@@ -43,10 +43,6 @@ def goal_callback(data):
     goal_camera.pose.position= marker_pos.pose.pose.position
     goal_camera.pose.orientation = marker_pos.pose.pose.orientation
 
-    # rospy.loginfo("goal camera")
-    # rospy.loginfo(goal_camera)
-    
-
     if not tf_buf.can_transform("cf1/base_link", 'cf1/camera_link', rospy.Time(0.0)):
         rospy.logwarn_throttle(5.0, 'No transform from %s to cf1/base_link' % goal_camera.header.frame_id)
         return
@@ -63,9 +59,6 @@ def goal_callback(data):
         return
 
     goal_odom = tf_buf.transform(goal_base,'cf1/odom')
-
-    # rospy.loginfo("goal odom")
-    # rospy.loginfo(goal_odom)
 
     goal = goal_odom
 
