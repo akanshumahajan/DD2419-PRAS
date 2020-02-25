@@ -98,7 +98,7 @@ def image_to_camera(boundry_box_list, obj_type_list, camera_matrix, pitch, roll)
                                  dtype=np.float64)
         obj_height, obj_width, obj_shape = get_obj_info(obj_type_list[i])
         return_values.append(image_to_camera_per_object(boundry_box, camera_matrix, obj_height, obj_width, obj_shape, 
-                                                        pitch, roll))
+                                                        -pitch, roll))
     return return_values
 
 
