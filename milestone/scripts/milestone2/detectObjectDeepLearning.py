@@ -49,7 +49,6 @@ class image_converter:
       # Find the objects' position
       roll, pitch, _ = self.pose_info.get_angles()
       obj_pos_and_angle = image_to_camera(res, label, self.camera_info.camera_matrix, pitch, roll)
-      # TODO pitch/roll
       print(obj_pos_and_angle)
       
       # self.image_pub(cv_image)
