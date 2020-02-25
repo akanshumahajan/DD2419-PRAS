@@ -62,7 +62,7 @@ def world_coord_to_grid_index(coord, offset, grid_res):
     coord = np.asarray(coord, dtype=np.float64)
     offset = np.asarray(offset, dtype=np.float64)
     
-    return (coord - offset) * grid_res
+    return np.floor((coord - offset) * grid_res)
     
 
 ###
