@@ -74,14 +74,18 @@ class ArUcoDetect:
         m_base = self.tf_buf.transform(m_camera, 'cf1/base_link')
         
         # Translate the marker into the odom frame
-        if not self.tf_buf.can_transform(m_base.header.frame_id, 'cf1/odom', rospy.Time(0.0)):
-            rospy.logwarn_throttle(5.0, 'No transform from %s to cf1/odom' % m_base.header.frame_id)
-            return
+        if not self.tf_buf.can_transform(m_base.header.frame_id, 'cf1/odom', m_base.header.stamp):
+            if not self.tf_buf.can_transform(m_base.header.frame_id, 'cf1/odom', rospy.Time(0.0)):
+                rospy.logwarn_throttle(5.0, 'No transform from %s to cf1/odom' % m_base.header.frame_id)
+                return
+            else:
+                odom_transform = self.tf_buf.lookup_transform(m_base.header.frame_id, "cf1/odom", rospy.Time(0.0))
+                m_base.header.stamp = odom_transform.header.stamp
+        else:
+            m_base.header.stamp = m.header.stamp
+                
     
         m_odom = self.tf_buf.transform(m_base,'cf1/odom')
-        
-        odom_transform = self.tf_buf.lookup_transform(m_base.header.frame_id, "cf1/odom", rospy.Time(0.0))
-        
         
         transform = TransformStamped()
         transform.header.stamp = odom_transform.header.stamp
