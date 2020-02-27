@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
 Created on Tue Feb 25 11:25:09 2020
@@ -11,7 +11,7 @@ from geometry_msgs.msg import PoseStamped
 from tf.transformations import euler_from_quaternion
 
 
-class PoseInfoCLass:
+class PoseInfoClass:
     def __init__(self, pose_subscription_topic='/cf1/pose'):
         self.pose = PoseStamped()
         self.pose_listener = rospy.Subscriber(pose_subscription_topic, PoseStamped, self.pose_callback)
@@ -31,8 +31,4 @@ class PoseInfoCLass:
         
     def get_position(self):
         return self.pose.pose.position.x, self.pose.pose.position.y, self.pose.pose.position.z
-    
-    
-    def get_pose_info(self):
-        return self.get_position(), self.get_angles()
         
