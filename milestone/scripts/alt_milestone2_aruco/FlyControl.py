@@ -9,7 +9,7 @@ Created on Tue Feb 11 23:15:51 2020
 import rospy
 import time
 import tf2_ros
-import tf2_geometry_msgs
+import tf2_geometry_msgs  # Needed
 import numpy as np
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from crazyflie_driver.msg import Position
@@ -21,8 +21,8 @@ from pose_info import PoseInfoClass
 
 
 class FlyDrone:
-    def __init__(self, node_name, cmd_publishing_topic, fly_subscription_topic, reached_distance=0.1, 
-                 reached_angle=np.pi/36., reached_stabilize=1):
+    def __init__(self, node_name, cmd_publishing_topic, reached_distance=0.1, 
+                 reached_angle=np.pi/36., reached_stabilize=1.):
         # Desired travel positions
         self.targets = []
         
@@ -44,8 +44,6 @@ class FlyDrone:
         
         # Create publisher
         self.cmd_publisher = rospy.Publisher(cmd_publishing_topic, Position, queue_size=2)
-        # Create subscriber to incomming commands
-        rospy.Subscriber(fly_subscription_topic, PoseStamped, self.add_target)
         # Create listener for pose
         self.pose_info = PoseInfoClass()
     
@@ -82,14 +80,15 @@ class FlyDrone:
         if pose.header.frame_id == 'cf1/odom':
             return pose
         
-        pose.header.stamp = rospy.Time(0.0)
-        
-        if not self.tf_buf.can_transform(pose.header.frame_id, 'cf1/odom', rospy.Time(0.0)):
+        if not self.tf_buf.can_transform(pose.header.frame_id, 'cf1/odom', rospy.Time(0.)):
             rospy.logwarn_throttle(5.0, 'No transform from %s to cf1/odom' % pose.header.frame_id)
             return None
-    
+        
+        odom_transform = self.tf_buf.lookup_transform(pose.header.frame_id, "cf1/odom", rospy.Time(0.))
+        pose.header.stamp = odom_transform.header.stamp
+        
         odom_pose = self.tf_buf.transform(pose, 'cf1/odom')
-        odom_transform = self.tf_buf.lookup_transform(pose.header.frame_id, 'cf1/odom', rospy.Time(0.0))
+        odom_transform = self.tf_buf.lookup_transform(pose.header.frame_id, 'cf1/odom', rospy.Time(0.))
         odom_pose.header.stamp = odom_transform.header.stamp
         
         return odom_pose
@@ -124,14 +123,6 @@ class FlyDrone:
             return None
         else:
             new_target = self.targets.pop(0)
-            
-            # The below code was commented out since rospy.Time.to_sec(rospy.Time.now()) is seconds since roslaunch
-            #     and not seconds since 1970 as with time.time()
-            # 
-            # If the header stamp of the new target is between 0 and 30, then it's interpreted as a message to
-            #     change the stabilisation time 
-            # if new_target.header.stamp > rospy.Time.from_sec(0) and new_target.header.stamp < rospy.Time.from_sec(30):
-            #     self.reached_stabilize = new_target.header.stamp
                 
             new_target.header.stamp = rospy.Time.now()
             
@@ -166,9 +157,9 @@ class FlyDrone:
             # If odom_target is None we need to get a new target => We say that the distance is 0
             return 0
         
-        pose_coords = np.asarray([self.pose_info.pose.pose.position.x, self.pose_info.pose.pose.position.y, 
-                                  self.pose_info.pose.pose.position.z],
-                                 dtype=np.float64)
+        current_pose = self.pose_info.get_pose()
+        pose_coords = np.asarray([current_pose.pose.position.x, current_pose.pose.position.y, 
+                                  current_pose.pose.position.z], dtype=np.float64)
         target_coords = np.asarray([odom_target.pose.position.x, odom_target.pose.position.y, 
                                     odom_target.pose.position.z], dtype=np.float64)
         
@@ -187,7 +178,8 @@ class FlyDrone:
     
     
     def map_connection_lost(self):
-        # TODO Scan the surroundings for markers/signs?
+        # TODO Scan the surroundings for markers/signs? Try to move to a marker/sign?
+        # Do nothing for now
         pass
     
     #
@@ -207,14 +199,13 @@ class FlyDrone:
             
                 if updated_odom_target is not None:
                     odom_target = updated_odom_target
-                    print(odom_target)  # TODO Remove
             
             if self.get_distance_to_target(odom_target) <= self.reached_distance:
                 # Within an acceptable proximity to the target
                 
                 if ((time.time() - self.reached_timestamp > self.reached_stabilize and stabilizing and 
                      self.get_angle_from_target_angle(odom_target) <= self.reached_angle) 
-                    or odom_target is None):  # TODO
+                    or odom_target is None):
                     # Stabilizing done. Get new target.
                     stabilizing = False
                     
@@ -248,10 +239,11 @@ class FlyDrone:
 
 
 if __name__ == '__main__':
-    fly_drone = FlyDrone('FlyDrone', '/cf1/cmd_position', '/fly_pose', 
-                         reached_distance=0.1, reached_angle=np.pi/36., reached_stabilize=1)
+    fly_drone = FlyDrone('FlyDrone', '/cf1/cmd_position', reached_distance=0.1, reached_angle=np.pi/36., 
+                         reached_stabilize=1.)
     
-    for item in [[0.5, 0.5, 0.4, 0, 'cf1/odom'], [0, 0, 0.4, 0]]:  # x, y, z, yaw, (frame)
+    # for item in [[0.5, 0.5, 0.4, 0, 'cf1/odom'], [0, 0, 0.4, 0]]:  # x, y, z, yaw, (frame)
+    for item in [[0, 0, 0.4, 0]]:  # x, y, z, yaw, (frame)
         fly_drone.add_target_coords(item)
         # TODO Will the initial liftoff be done in PathPlanning?
     

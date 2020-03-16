@@ -39,6 +39,8 @@ class ArUcoDetect:
     
     
     def run(self):
+        # TODO Have everything in the callback function and nothing in this run function. Holding back with the changes
+        #      for after milestone 2.
         rate = rospy.Rate(10)  # Hz
         
         while not rospy.is_shutdown():
@@ -74,7 +76,7 @@ class ArUcoDetect:
         m_base = self.tf_buf.transform(m_camera, 'cf1/base_link')
         
         # Translate the marker into the odom frame
-        if not self.tf_buf.can_transform(m_base.header.frame_id, 'cf1/odom', m_base.header.stamp):
+        if not self.tf_buf.can_transform(m_base.header.frame_id, 'cf1/odom', m.header.stamp):
             if not self.tf_buf.can_transform(m_base.header.frame_id, 'cf1/odom', rospy.Time(0.0)):
                 rospy.logwarn_throttle(5.0, 'No transform from %s to cf1/odom' % m_base.header.frame_id)
                 return
@@ -88,7 +90,7 @@ class ArUcoDetect:
         m_odom = self.tf_buf.transform(m_base,'cf1/odom')
         
         transform = TransformStamped()
-        transform.header.stamp = odom_transform.header.stamp
+        transform.header.stamp = m_odom.header.stamp
         transform.header.frame_id = "cf1/odom"
         transform.child_frame_id = "aruco/detected" + str(m.id)
     

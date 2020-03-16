@@ -77,5 +77,10 @@ def transform_from_roadsign(r):
 
 
 if __name__ == "__main__":
-    mat_plot = MatPlot('MatPlot', 
-                       '/home/ff/dd2419_ws/src/course_packages/dd2419_resources/worlds_json/aruco.world.json')
+    
+    world = 'aruco'
+    
+    import os
+    json_path = os.path.expanduser('~/dd2419_ws/src/course_packages/dd2419_resources/worlds_json/%s.world.json' % world)
+    
+    mat_plot = MatPlot('MatPlot', json_path)
