@@ -1,4 +1,4 @@
-image: 2D map.pgm
+image: maps/2D map.png
 resolution: 0.1
 origin: [-10.0000, -10.000000, 0.000000] # Because while creating the map; the origin is assumed to be at 0,0 and np.zeros get (200,200) as i/p argument
 negate: 0

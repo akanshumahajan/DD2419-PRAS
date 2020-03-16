@@ -51,8 +51,8 @@ class Localization:
 
     def start_position(self):
         self.start = Position()
-        self.start.x = 0
-        self.start.y = 0 
+        self.start.x = 10 # Converting into decimeter because map works in decimeter
+        self.start.y = 10 # Converting into decimeter because map works in decimeter
         self.start.z = 0
         self.start.yaw = 0
 
@@ -65,11 +65,29 @@ class Localization:
             if self.goal_msg!= None:
 
                 start = (self.start.x, self.start.y)
-                end= (self.goal_msg.x, self.goal_msg.y)
                 
+                # if self.goal_msg.x >= 0 and self.goal_msg.y>=0 :
+                #     self.goal_msg.x = (10) - self.goal_msg.x
+                #     self.goal_msg.y = (10) - self.goal_msg.y
+
+                # elif self.goal_msg.x < 0 and self.goal_msg.y>=0 :    
+                #     self.goal_msg.x = (10) - self.goal_msg.x
+                #     self.goal_msg.y = (10) - self.goal_msg.y
+                
+                
+                #     self.goal_msg.x = (10) - self.goal_msg.x
+                #     self.goal_msg.y = (10) - self.goal_msg.y
+
+                end= (self.goal_msg.x, self.goal_msg.y) # Converting into decimeter because map works in decimeter
+                
+                print ("start is :", start)
+                print ("end is :", end)
+
+
                 if algo == 'a-star':
                     path, path_px = localization_algo(start, end, algo, plot)
-                    print (path_px)
+                    path_px = path_px 
+                    print ("Path px is ",path_px)
                     #self.pub.publish("Sucess")
                     print ("Sucess!!!!!!!!!!!!!")
                 else:
@@ -79,21 +97,21 @@ class Localization:
                 
                 for i in range(len(path_px)):
                     self.x, self.y = path_px[i]
-                    print ('x is',type(self.x))
-                    print ('y is',self.y)                
+                    #print ('x is',type(self.x))
+                    #print ('y is',self.y)                
                     self.localization_msg.header.frame_id = 'map'
                     self.localization_msg.header.stamp = rospy.Time.now()
                     #self.localization_msg.header.frame_id = 'map'
 
 
-                    self.localization_msg.pose.position.x = self.x
-                    self.localization_msg.pose.position.y = self.y
-                    self.localization_msg.pose.position.z = 0
+                    self.localization_msg.pose.position.x = (self.x*(-0.1))+10 # # Converting into meter because rviz grid/ drone world works in meter
+                    self.localization_msg.pose.position.y = (self.y*(-0.1))+10 # # Converting into meter because rviz grid/ drone world works in meter
+                    self.localization_msg.pose.position.z = 0*(0.1) # # Converting into meter because rviz grid/ drone world works in meter
                     
-                    self.localization_msg.pose.orientation.x = 0
-                    self.localization_msg.pose.orientation.y = 0
-                    self.localization_msg.pose.orientation.z = 0
-                    self.localization_msg.pose.orientation.w = 0
+                    self.localization_msg.pose.orientation.x = 0*(0.1) # # Converting into meter because rviz grid/ drone world works in meter
+                    self.localization_msg.pose.orientation.y = 0*(0.1) # # Converting into meter because rviz grid/ drone world works in meter
+                    self.localization_msg.pose.orientation.z = 0*(0.1) # # Converting into meter because rviz grid/ drone world works in meter
+                    self.localization_msg.pose.orientation.w = 0*(0.1) # # Converting into meter because rviz grid/ drone world works in meter
 
                     #self.path.header = self.localization_msg.header
                     #self.path.poses.append(self.localization_msg)
@@ -131,6 +149,6 @@ if __name__ == '__main__':
 
     quad = Localization()
     quad.start_position()
-    quad.localize(algo= 'a-star', plot = False)
+    quad.localize(algo= 'a-star', plot = True)
     #rospy.spin()
     #rospy.init_node('navgoal3')
