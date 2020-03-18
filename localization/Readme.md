@@ -1,5 +1,6 @@
 ## First try 
 
+roscore
 roslaunch localization localization_main.launch
 rviz rviz
 
