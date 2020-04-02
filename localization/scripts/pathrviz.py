@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 import rospy
-
 from nav_msgs.msg import Path
-# add the module to import localization_msg
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped
 
@@ -13,14 +11,14 @@ def odom_cb(data):
     path.header = data.header
     pose = PoseStamped()
     pose.header = data.header
-    pose.pose = data.pose.pose
+    pose.pose = data.pose
     path.poses.append(pose)
     path_pub.publish(path)
 
 rospy.init_node('rviz_path')
 
-#odom_sub = rospy.Subscriber('/odom', Odometry, odom_cb)
-odom_sub = rospy.Subscriber('/localization_msg', PoseStamped, odom_cb)
+
+odom_sub = rospy.Subscriber('/planned_path', PoseStamped, odom_cb)
 path_pub = rospy.Publisher('/path', Path, queue_size=10)
 
 if __name__ == '__main__':
