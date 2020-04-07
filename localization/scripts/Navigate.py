@@ -9,14 +9,14 @@ from crazyflie_driver.msg import Position
 from tf.transformations import euler_from_quaternion
 
 
-goal = None
+""" goal = None
 
 
-""" def Currentpose(pose):
+def Currentpose(pose):
     global position
-    position = pose
+    position = pose """
 
-goal = None """
+goal = None 
 
 def updatepose(msg):
     global goal
@@ -58,7 +58,7 @@ def publish_cmd(goal):
 
 
 
-rospy.init_node('Pathexecute')
+rospy.init_node('Path_navigation')
 #Current_goal = rospy.Subscriber('/cf1/pose', PoseStamped, Currentpose)
 Path_goal = rospy.Subscriber('/planned_path', PoseStamped, updatepose)
 pub_cmd  = rospy.Publisher('/cf1/cmd_position', Position, queue_size=2)
