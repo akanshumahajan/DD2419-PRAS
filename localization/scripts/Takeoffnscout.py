@@ -15,10 +15,7 @@ goal = None
 
 def takeoff_callback(msg):
     takeoff_cmd = Position()
-
-    takeoff_cmd.header.stamp = rospy.Time.now()
     takeoff_cmd.header.frame_id = 'cf1/odom'
-
     takeoff_cmd.x = 0
     takeoff_cmd.y = 0
     takeoff_cmd.z = 0.4
@@ -33,11 +30,11 @@ def Rotate_callback(goal):
 
     goal_odom = tf_buf.transform(goal, 'cf1/odom')
 
-    global state, angle, lap, N, origin
+    global state, angle
     
     Rotate_cmd = Position()
-    Rotate_cmd.header.stamp = rospy.Time.now()   
     Rotate_cmd.header.frame_id = 'cf1/odom'
+    
     angle += 5 
     Rotate_cmd.x = 0
     Rotate_cmd.y = 0
@@ -49,9 +46,8 @@ def Rotate_callback(goal):
     if angle == 720:
         angle = 0
         state = 3
-        rospy.on_shutdown(Rotate_callback)
+        #rospy.on_shutdown(Rotate_callback)
         
-
     if goal.pose.position.x == 0 and goal.pose.position.y == 0 and goal.pose.position.z == 0:
         state = 1
 
@@ -60,7 +56,7 @@ def Rotate_callback(goal):
 
 rospy.init_node('Takeoff_n_Scout')
 sub_goal = rospy.Subscriber('/cf1/pose', PoseStamped, Rotate_callback)
-pub_cmd  = rospy.Publisher('/cf1/cmd_position', Position, queue_size=4)
+pub_cmd  = rospy.Publisher('/cf1/cmd_position', Position, queue_size=2)
 tf_buf   = tf2_ros.Buffer()
 tf_lstn  = tf2_ros.TransformListener(tf_buf)
 
@@ -71,10 +67,14 @@ def main():
             pub_cmd.publish(takeoff_cmd)
         elif state == 2:
             pub_cmd.publish(Rotate_cmd)
-        elif state == 3:
-            rospy.on_shutdown('Takeoffnscout')
-        # Do something like start exploring
+
         rate.sleep()
+"""         elif state == 3:
+            pub_cmd.publish(Rotate_cmd) """
+        
+        #    rospy.on_shutdown('Takeoffnscout')
+        # Do something like start exploring
+        
 
 if __name__ == '__main__':
     main()
