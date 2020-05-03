@@ -69,6 +69,53 @@ def Rotate_callback(pose):
         state = 2
         print("State2")
 
+
+def dist(myposex, myposey, markx, marky):
+    dis = math.sqrt((myposex-markx)**2+(myposey-marky)**2)
+    return dis
+
+
+def new_pose(mypose):
+    global origin, state, lap, initalize
+    if initalize < 1:
+        origin = get_origin(mypose)
+        initalize += 1
+    tol = 0.1
+    if dist(mypose.pose.position.x, mypose.pose.position.y, origin.x, origin.y) < tol and (origin.z-mypose.pose.position.z) < tol and lap != N:
+        state = 1
+        lap = 0
+    elif dist(mypose.pose.position.x, mypose.pose.position.y, setpoint.x, setpoint.y) < tol and lap == 0:
+        state = 2
+
+def goalpub(x,y,yaww):
+    global odom_cmd
+    rate = rospy.Rate(10)
+    goal = PoseStamped()
+    goal.header.stamp = stamp
+    goal.header.frame_id = "map"
+    goal.pose.position.x = x
+    goal.pose.position.y = y
+    goal.pose.position.z = 0.4
+    if not tf_buf.can_transform('map', 'cf1/odom', rospy.Time.now(), timeout=rospy.Duration(0.2)):
+        rospy.logwarn_throttle(10.0, 'No transform from %s to cf1/odom' % goal.header.frame_id)
+        return
+
+    goal_odom = tf_buf.transform(goal, 'cf1/odom')
+
+    if goal_odom:
+        #print(goal_odom.header.stamp)
+        cmd = Position()
+        cmd.header.stamp = rospy.Time.now()
+        cmd.x = goal_odom.pose.position.x
+        cmd.y = goal_odom.pose.position.y
+        cmd.z = goal_odom.pose.position.z
+        cmd.yaw = yaww
+        odom_cmd = cmd
+        return odom_cmd
+
+
+
+
 rospy.init_node('Takeoff_n_Scout')
 sub_pose = rospy.Subscriber('/cf1/pose', PoseStamped, Rotate_callback)
 pub_cmd  = rospy.Publisher('/cf1/cmd_position', Position, queue_size=2)

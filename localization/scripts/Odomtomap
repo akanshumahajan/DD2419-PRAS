@@ -19,9 +19,9 @@ odomTrans = TransformStamped()
 
 def update_callback(marker):
     global driftMarker
-    if tf_buf.can_transform(marker.header.frame_id, "map", rospy.Time(0)):
+    if tf_buf.can_transform(marker.header.frame_id, "cf1/odom", rospy.Time(0)):
         rospy.loginfo('hejhej')
-        driftMarker = tf_buf.transform(marker, "map", rospy.Duration(0.1))
+        driftMarker = tf_buf.transform(marker, "cf1/odom", rospy.Duration(0.1))
 
 
 def updateOdom(jsonMarker):
@@ -45,7 +45,7 @@ def updateOdom(jsonMarker):
     rospy.loginfo(zdiff)
 
 
-rospy.init_node('TF_Odom _to _map')
+rospy.init_node('TF_Odom_to_map')
 tf_buf = tf2_ros.Buffer()
 tf_lstn = tf2_ros.TransformListener(tf_buf)
 broadcaster = tf2_ros.TransformBroadcaster()
@@ -63,7 +63,7 @@ def main():
 
     # Open JSON file
     path = expanduser('~')
-    path += "/dd2419_ws/src/course_packages/dd2419_resources/worlds_json/tutorial_1.world.json"
+    path += "/dd2419_ws/src/course_packages/dd2419_resources/worlds_json/milestone2.world.json"
     with open(path, "rb") as f:
         world = json.load(f)
 
@@ -80,7 +80,7 @@ def main():
 
     while not rospy.is_shutdown():
 
-        updateOdom(jsonMarkers[0])
+        updateOdom(jsonMarkers)
         broadcaster.sendTransform(odomTrans)
         rate.sleep()
 
