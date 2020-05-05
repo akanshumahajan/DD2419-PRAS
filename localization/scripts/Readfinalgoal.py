@@ -26,10 +26,16 @@ def publish_cmd(rgoal):
     cmd.header.stamp = rospy.Time.now()
     cmd.header.frame_id = rgoal.header.frame_id
 
+    # cmd.x = rgoal.pose.position.x
+    # cmd.x = (10- cmd.x)
+    # cmd.y = rgoal.pose.position.y
+    # cmd.y = (10- cmd.y)
+
     cmd.x = rgoal.pose.position.x
-    cmd.x = (10- cmd.x)
+    cmd.x = (0.5- cmd.x)
     cmd.y = rgoal.pose.position.y
-    cmd.y = (10- cmd.y)
+    cmd.y = (0.5- cmd.y)
+
     cmd.z = rgoal.pose.position.z
 
     roll, pitch, yaw = euler_from_quaternion((rgoal.pose.orientation.x,

@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<launch>
+    
+    <node pkg="localization" type="pose_filtered.py" name="pose_filtered" output="screen">
+        <param name="pose_topic" value="/cf1/cmd_position" />
+        <param name="pose_filtered_topic" value="/localize/pose_filtered" />
+        <param name="frame_id" value="base_link" />
+        <param name="linear_covariance" type="double" value=".005" />
+        <param name="angular_covariance" type="double" value=".01" />
+        
+    </node>
+
+</launch>
+

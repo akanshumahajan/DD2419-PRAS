@@ -101,7 +101,7 @@ class ArUcoDetect:
         
 
 ###
-        
+
 
 if __name__ == '__main__':
     aruco_transform_broadcaster = ArUcoDetect('ArUcoDetect', '/aruco/markers')
