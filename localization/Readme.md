@@ -7,11 +7,11 @@ rqt<br />
 ## First try for Path planning<br />
 <br />
 roscore<br />
-roslaunch localization localization_main.launch<br />
+roslaunch localization path_planning.launch<br />
 rviz rviz<br />
 <br />
 rostopic echo /final_goal # Not necessarily needed<br />
-rosrun localization localization_main.py<br />
+rosrun localization path_planning.py<br />
 <br />
 ## Path Planning: If nothing works then this is the sequence<br />
 <br />
@@ -28,5 +28,5 @@ rosrun localization Readfinalgoal.py<br />
 <br />
 rviz<br />
 rostopic echo /final_goal<br />
-rosrun localization localization_main.py<br />
+rosrun localization path_planning.py<br />
 
