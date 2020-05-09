@@ -8,8 +8,9 @@ from a_star import a_star
 from utils import plot_path
 
 
-def localization_algo(start, end, algo= 'a-star', plot =False):
-    
+def path_planning_algo(start, end, algo= 'a-star', plot =False):
+    #return: a tuple that contains: (the resulting path in meters, the resulting path in data array indices)
+
     path= None
     path_px = None
 

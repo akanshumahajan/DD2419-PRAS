@@ -7,73 +7,100 @@ import tf2_geometry_msgs
 from tf.transformations import euler_from_quaternion
 from geometry_msgs.msg import PoseStamped
 from crazyflie_driver.msg import Position
+from std_msgs.msg import Empty
 
 state = 0
 angle = 0
-# Current goal (global state)
-goal = None
+thr = 0.1
+# Current pose (global state)
+#pose = None
 
-def takeoff_callback(msg):
-    takeoff_cmd = Position()
 
-    takeoff_cmd.header.stamp = rospy.Time.now()
-    takeoff_cmd.header.frame_id = 'cf1/odom'
+""" takeoff_cmd = Position()
+takeoff_cmd.header.frame_id = 'cf1/odom'
+takeoff_cmd.x = 0
+takeoff_cmd.y = 0
+takeoff_cmd.z = 0.4
 
-    takeoff_cmd.x = 0
-    takeoff_cmd.y = 0
-    takeoff_cmd.z = 0.4
-    pub_cmd.publish(takeoff_cmd)
 
-def Rotate_callback(goal):
-    goal.header.stamp = rospy.Time.now()
+Rotate_cmd = Position()
+Rotate_cmd.header.frame_id = 'cf1/odom'   
+Rotate_cmd.x = 0
+Rotate_cmd.y = 0
+Rotate_cmd.z = 0.5
+Rotate_cmd.yaw = 0 """
 
-    if not tf_buf.can_transform(goal.header.frame_id, 'cf1/odom', goal.header.stamp):
-        rospy.logwarn_throttle(5.0, 'No transform from %s to cf1/odom' % goal.header.frame_id)
-        return
+def originn(cu_pose):
+    global origin
 
-    goal_odom = tf_buf.transform(goal, 'cf1/odom')
+    origin = Position()
+    origin.header.frame_id = 'cf1/odom'
+    origin.x = cu_pose.pose.position.x
+    origin.y = cu_pose.pose.position.y
+    origin.z = 0.4
+    origin.yaw = 000
+    # origin = pose
+    return origin
 
-    global state, angle, lap, N, origin
-    
+def Rotate_callback(origin):
+    global state, angle, Rotate_cmd
+
     Rotate_cmd = Position()
-    Rotate_cmd.header.stamp = rospy.Time.now()   
-    Rotate_cmd.header.frame_id = 'cf1/odom'
+    Rotate_cmd.header.frame_id = 'cf1/odom'  
+
     angle += 5 
-    Rotate_cmd.x = 0
-    Rotate_cmd.y = 0
-    Rotate_cmd.z = 0.5
+    Rotate_cmd.x = origin.x
+    Rotate_cmd.y = origin.y
+    Rotate_cmd.z = origin.z
     Rotate_cmd.yaw = angle
-    rospy.loginfo('Rotating now angle:\n%s',Rotate_cmd.yaw)
-    pub_cmd.publish(Rotate_cmd)
+    # rospy.loginfo('Rotating now angle:\n%s',Rotate_cmd.yaw)
+    # pub_cmd.publish(Rotate_cmd)
     
-    if angle == 720:
+    if angle == 360:
         angle = 0
         state = 3
-        rospy.on_shutdown(Rotate_callback)
+    return Rotate_cmd
+    
+def dist(myposex, myposey, goalx, goaly):
+    dis = math.sqrt((myposex-goalx)**2+(myposey-goaly)**2)
+    return dis
         
-
-    if goal.pose.position.x == 0 and goal.pose.position.y == 0 and goal.pose.position.z == 0:
+def state_machine(cf1_pose):
+    global cu_pose, state
+    cu_pose = cf1_pose
+    xval = round(cu_pose.pose.position.x,1)    
+    yval = round(cu_pose.pose.position.y,1)
+    zval = round(cu_pose.pose.position.z,1)
+    # print xval, yval, zval
+     
+    if zval < 0.1:
         state = 1
-
-    if goal.pose.position.x == 0 and goal.pose.position.y == 0 and goal.pose.position.z == 0.4:
+        print state
+    if  zval == 0.4:#dist(xval, yval,0.0,0.0) < thr and 
         state = 2
+    
+
+    # if angle == 360:
+    #     angle = 0
+    #     state = 3
 
 rospy.init_node('Takeoff_n_Scout')
-sub_goal = rospy.Subscriber('/cf1/pose', PoseStamped, Rotate_callback)
-pub_cmd  = rospy.Publisher('/cf1/cmd_position', Position, queue_size=4)
-tf_buf   = tf2_ros.Buffer()
-tf_lstn  = tf2_ros.TransformListener(tf_buf)
+sub_pose = rospy.Subscriber('/cf1/pose', PoseStamped, state_machine)
+pub_cmd  = rospy.Publisher('/cf1/cmd_position', Position, queue_size=2)
 
 def main():
     rate = rospy.Rate(10)  # Hz
     while not rospy.is_shutdown():
         if state == 1:
-            pub_cmd.publish(takeoff_cmd)
+            originn(cu_pose)
+            pub_cmd.publish(origin)
         elif state == 2:
+            Rotate_callback(origin)
             pub_cmd.publish(Rotate_cmd)
+            print angle
         elif state == 3:
-            rospy.on_shutdown('Takeoffnscout')
-        # Do something like start exploring
+            rospy.signal_shutdown()
+
         rate.sleep()
 
 if __name__ == '__main__':

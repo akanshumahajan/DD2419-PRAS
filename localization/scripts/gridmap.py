@@ -201,7 +201,7 @@ class OccupancyGridMap:
         """
         Create an OccupancyGridMap from a png image
         :param filename: the image filename
-        :param cell_size: the image pixel size in meters; default is 0.1 m
+        :param cell_size: the image pixel size in meters; default is 0.01 m
         :return: the created OccupancyGridMap
         """
         ogm_data = png_to_ogm(filename, normalized=True)
@@ -274,8 +274,8 @@ def read_json(path = '/home/akanshu/dd2419_ws/src/course_packages/dd2419_resourc
     with open(path) as f:
         json_dict = json.load(f)
 
-    grid, offset = create_grid(json_dict, grid_res=100)
-    grid = draw_walls(json_dict, grid, offset, grid_res=100)
+    grid, offset = create_grid(json_dict, grid_res=10)
+    grid = draw_walls(json_dict, grid, offset, grid_res=10)
     
     # Plot the grid as an image just to make sure it works
     img = np.zeros(tuple(list(grid.shape) + [3]))
