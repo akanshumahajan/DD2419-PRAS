@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 
 import sys
-sys.path.insert(0, "/home/akanshu/dd2419_ws/src/localization/scripts")
+sys.path.insert(0, "/home/sumslinux/dd2419_ws/src/localization/scripts")
 from gridmap import OccupancyGridMap, read_json
 import matplotlib.pyplot as plt
 from a_star import a_star
 from utils import plot_path
 
 
-def localization_algo(start, end, algo= 'a-star', plot =False):
-    
+def path_planning_algo(start, end, algo= 'a-star', plot =False):
+    #return: a tuple that contains: (the resulting path in meters, the resulting path in data array indices)
+
     path= None
     path_px = None
 

@@ -9,36 +9,35 @@ from crazyflie_driver.msg import Position
 from tf.transformations import euler_from_quaternion
 
 state = 0
-alt = 0
 goal = None 
 
 def landing_cmd(goal):
-    global state, alt
+    global state, alt, landing_cmd
     landing_cmd = Position()
-    landing_cmd.header.stamp = rospy.Time.now()
     landing_cmd.header.frame_id = 'cf1/odom'
-    #landing_cmd.x = goal.pose.position.x
-    #landing_cmd.y = goal.pose.position.y
+    landing_cmd.x = goal.pose.position.x
+    landing_cmd.y = goal.pose.position.y
+    alt = goal.pose.position.z
     alt -= 0.1
     landing_cmd.z = alt
+    landing_cmd.yaw = goal.pose.orientation.z
 
-    if goal.pose.position.z != 0:
+    if goal.pose.position.z != 0.000000:
         #Landing executing
         state = 1
 
-    if alt == 0:
+    if alt == 0 and goal.pose.position.z == 0.0000:
         #Landing done
         state = 2
-        rospy.on_shutdown(landing_cmd)
+        #rospy.on_shutdown(landing_cmd)
 
     pub_cmd.publish(landing_cmd)
 
 
 
 rospy.init_node('Landing')
-#Landing_trig = rospy.Subscriber('/trig_land', int, landing_cmd)
 Path_goal = rospy.Subscriber('/cf1/pose', PoseStamped, landing_cmd)
-pub_cmd  = rospy.Publisher('/cf1/cmd_position', Position, queue_size=2)
+pub_cmd  = rospy.Publisher('/cf1/cmd_position', Position, queue_size=5)
 rospy.loginfo('Landing alt:\n%s',landing_cmd)
 
 def main():
@@ -46,9 +45,10 @@ def main():
     while not rospy.is_shutdown():
         if state == 1:
             pub_cmd.publish(landing_cmd)
-        if state == 2:
-            rospy.on_shutdown('Landing')
+        elif state == 2:
+            rospy.on_shutdown()
         rate.sleep()
-
+        
+        #    rospy.on_shutdown('Landing')
 if __name__ == '__main__':
     main()

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import sys
-sys.path.insert(0, "/home/akanshu/dd2419_ws/src/localization/scripts")
+sys.path.insert(0, "/home/sumslinux/dd2419_ws/src/DD2419-PRAS/localization/scripts")
 import math
 import png
 import numpy
