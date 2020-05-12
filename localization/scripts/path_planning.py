@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import csv
+import pandas as pd
 import math
 import rospy
 import tf2_ros
@@ -52,14 +54,16 @@ class Pathplanning:
         target_frame = 'map'
         try:
             trans = self.tfBuffer.lookup_transform(target_frame,'cf1/odom',rospy.Time(0), rospy.Duration(1.0))
+            rospy.loginfo('Lookup transfrom from odom to map is available')
+
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
             #trans = self.tfBuffer.lookup_transform(self.map_frame, self.est_veh_pose_frame, rospy.Time(0), rospy.Duration(1.0))
-            rospy.loginfo('Failure of lookup transfrom from  to map')
+            rospy.loginfo('Failure of lookup transfrom from odom to map')
             self.start_msg.pose.position.x = -0.25          # Default Position in our created world
             self.start_msg.pose.position.y = 0.4
             
 
-        if trans:
+        if trans != None:
             self.start_msg.header.stamp = rospy.Time.now()
             self.start_msg.pose.position = trans.transform.translation
             self.start_msg.pose.orientation = trans.transform.rotation
@@ -72,7 +76,7 @@ class Pathplanning:
         path += '/dd2419_ws/src/course_packages/dd2419_resources/worlds_json/milestone3.world.json'
         with open(path, 'rb') as f:
             world = json.load(f)
-        jsonMarker = [m for m in world['markers']]
+        # jsonMarker = [m for m in world['markers']]
         # print( jsonMarker)
         # print (jsonMarker[0]['pose']['position'][2])
 
@@ -98,7 +102,7 @@ class Pathplanning:
             goal_sign += 1
 
     def start_to_end(self):
-        initialize = 0
+        # initialize = 0
         no_signs = len(self.dict_signs)+1
         self.waypoints = {}
         for i in range(no_signs):
@@ -129,9 +133,10 @@ class Pathplanning:
         # rate = rospy.Rate(10) # 10hz
         
         # while not rospy.is_shutdown():
-
+        # print("In path_planning_start_end")
         self.path_complete = []
         self.path_waypoint = []
+        path_break = [(100,100)] # Identifier for path reached
         for i in range (len(self.waypoints)):
             self.start = self.waypoints[i][0]
             self.goal = self.waypoints[i][1]
@@ -144,6 +149,28 @@ class Pathplanning:
                 rospy.loginfo("Path not found by A-star")
             
             self.path_complete.extend(self.path_waypoint)
+            self.path_complete.extend(path_break)
+        
+        print(self.path_complete)
+        df = pd.DataFrame(self.path_complete, columns=['x', 'y'])
+
+        df['x'] = df['x'].apply(lambda x: (x*0.1))
+        df['x'] = df['x'].apply(lambda x: x-0.5)
+        df['y'] = df['y'].apply(lambda x: (x*0.1))
+        df['y'] = df['y'].apply(lambda x: x-0.5)
+        temp = pd.DataFrame(df['x'])
+        df['x'] = -df['y']
+        df['y'] = temp
+
+        df['x'] = df['x'].apply(lambda x: round(x,2))
+        df['y'] = df['y'].apply(lambda y: round(y,2))
+
+
+        pathcsv = expanduser('~')
+        pathcsv += '/dd2419_ws/src/localization/csv_path/Pathcsv'
+        df.to_csv(pathcsv, sep=',',index=False)
+
+        # print(df)
 
         # print(self.path_complete)
         self.publish_path()
@@ -151,9 +178,9 @@ class Pathplanning:
             # rate.sleep()
 
 
-    def path_planning(self, start=[-0.25, 0.5], end = [0, 0], algo = 'a-star', plot= True):
-        print ("start is :", start)
-        print ("end is :", end)
+    def path_planning(self, start=[-0.25, 0.5], end = [0, 0], algo = 'a-star', plot= False):
+        # print ("start is :", start)
+        # print ("end is :", end)
         
         # while not rospy.is_shutdown():
             
@@ -163,8 +190,8 @@ class Pathplanning:
         start = (start[0], start[1])               # Since Map and Image X and Y are different
         end = (end[0], end[1])    
 
-        print ("start is :", start)
-        print ("end is :", end)
+        # print ("start is :", start)
+        # print ("end is :", end)
 
         if algo == 'a-star':
             path, path_px = path_planning_algo(start, end, algo, plot)
@@ -182,10 +209,7 @@ class Pathplanning:
     def publish_path(self):
 
         rate = rospy.Rate(1) # 1 hz
-
-
         path = Path()
-
         path.header.frame_id = 'map'
         path.header.stamp = rospy.Time.now()
         
@@ -213,7 +237,7 @@ class Pathplanning:
                 path.poses.append(self.path_planning_msg)
                 # print(path)
 
-                self.pub.publish(path)
+            self.pub.publish(path)
 
             
             rate.sleep()
@@ -221,8 +245,7 @@ class Pathplanning:
 if __name__ == '__main__':
 
     rospy.init_node('Pathplanning', anonymous=True)
-    rospy.loginfo("Successful initilization of node")
-
+    rospy.loginfo("Successful initilization of path planning node")
     quad = Pathplanning()
     quad.start_position()
     quad.get_goal_position()

@@ -94,9 +94,10 @@ class ArucoDetect:
 
     def aruco_calc_tf_and_pub(self):
         
+        rate = rospy.Rate(10)  # Hz
+        
         while not rospy.is_shutdown():
 
-            rate = rospy.Rate(10)  # Hz
 
             if self.detected_markers is not None:
 

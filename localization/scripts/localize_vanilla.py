@@ -80,6 +80,9 @@ class Localization:
     def marker_map(self, m):
 
         self.x_map, self.y_map, self.z_map = m['pose']['position']
+        # temp = self.x_map
+        # self.x_map = self.y_map
+        # self.y_map = -temp
         self.roll_map, self.pitch_map, self.yaw_map = m['pose']['orientation']       
         
 
@@ -90,15 +93,18 @@ class Localization:
         print(self.y_map)
         print(self.z_map)
 
+        # temp = self.x_odom
+        # self.x_odom = self.y_odom
+        # self.y_odom = -temp
 
-        self.x_diff = self.y_map - self.x_odom
-        self.y_diff = self.x_map - self.y_odom
+        self.x_diff = self.x_map - self.x_odom
+        self.y_diff = self.y_map - self.y_odom
         self.z_diff = self.z_map - self.z_odom
 
         print("Translation difference odom is")
-        print(self.x_odom)
-        print(self.y_odom)
-        print(self.z_odom)
+        print(self.x_diff)
+        print(self.y_diff)
+        print(self.z_diff)
 
 
         print("Roll_map:")
@@ -111,15 +117,49 @@ class Localization:
         print(self.pitch_odom)
         print(self.yaw_odom)
 
+        temp_angle = self.roll_odom
+        self.roll_odom = self.pitch_odom
+        self.pitch_odom = self.yaw_odom
+        # temp_angle = self.pitch_odom
+        # self.pitch_odom = self.yaw_odom
+        self.yaw_odom = temp_angle
+        # self.pitch_odom = self.pitch_odom
+        # self.pitch_odom = temp_angle
+
+        print("Roll_odom updated:")
+        print(self.roll_odom)
+        print(self.pitch_odom)
+        print(self.yaw_odom)
+
+
 
         self.roll_diff = self.roll_map - self.roll_odom
         self.pitch_diff = self.pitch_map - self.pitch_odom
         self.yaw_diff = self.yaw_map - self.yaw_odom
 
+
         print("Roll_diff:")
         print(self.roll_diff)
         print(self.pitch_diff)
         print(self.yaw_diff)
+
+
+        if self.yaw_diff <= -90 and self.yaw_diff > -180:
+            temp = self.x_diff
+            self.x_diff = self.y_diff
+            self.y_diff = -temp
+
+        elif self.yaw_diff <= -180 and self.yaw_diff > -270:
+
+            self.x_diff = - self.x_diff
+            self.y_diff = -self.y_diff
+
+        elif self.yaw_diff <= -270 and self.yaw_diff > -360:
+
+            temp = self.x_diff
+            self.x_diff = -self.y_diff
+            self.y_diff = temp
+
 
         # rospy.loginfo(self.x_map)
         # rospy.loginfo(self.x_odom)
@@ -146,7 +186,11 @@ class Localization:
         t.transform.rotation.z,
         t.transform.rotation.w) = quaternion_from_euler(math.radians(self.roll_diff),
                                                      math.radians(self.pitch_diff),
-                                                     math.radians(self.yaw_diff),'ryxz')
+                                                     math.radians(self.yaw_diff),'rzxy')
+
+        temp = t.transform.rotation.y
+        t.transform.rotation.y = t.transform.rotation.z
+        t.transform.rotation.z = temp
 
         # (t.transform.rotation.x,
         # t.transform.rotation.y,
@@ -179,7 +223,7 @@ class Localization:
         (t.transform.rotation.x,
         t.transform.rotation.y,
         t.transform.rotation.z,
-        t.transform.rotation.w) = (0,0,-0.7071068,0.7071068)
+        t.transform.rotation.w) = (0,0,0,1)
         print(t)
 
         # self.br.sendTransform(t)
@@ -229,7 +273,7 @@ class Localization:
 
             (self.roll_odom,
             self.pitch_odom,
-            self.yaw_odom,) = euler_from_quaternion([self.x_quat_odom, self.y_quat_odom, self.z_quat_odom, self.w_quat_odom],axes='rzyx') #output in radians, Check the axis!!!!
+            self.yaw_odom,) = euler_from_quaternion([self.x_quat_odom, self.y_quat_odom, self.z_quat_odom, self.w_quat_odom],axes='rzxy') #output in radians, Check the axis!!!! rzyx
             
             # print(self.roll_odom)
             # print(self.pitch_odom)
@@ -260,12 +304,12 @@ class Localization:
             
             # if self.bool_static is False:
             rospy.loginfo("No transform available")
-            transform = self.odom_to_map_static()
-            trans_static = True
-            #     rospy.loginfo("Published static transform")
-            #     print(transform)
-            #     self.br.sendTransform(transform)
-            #     rospy.sleep(1)
+            # transform = self.odom_to_map_static()
+            # trans_static = True
+            # rospy.loginfo("Published static transform")
+            # print(transform)
+            # self.br.sendTransform(transform)
+            # rospy.sleep(1)
             #     self.bool_static =True
 
             #rospy.sleep(3)
@@ -308,10 +352,12 @@ class Localization:
                 if trans_detected is True:
                     rospy.loginfo("Transform available")
 
-                    # self.br.sendTransform(transform)
-                    # rospy.sleep(1)
+                    self.br.sendTransform(transform)
+                    rospy.sleep(1)
 
-                    transform_bool = True
+                    # transform_bool = True       # Set to True to get the first transform and keep on publishing that
+                    transform_bool = False
+
                     break
                 elif trans_static is True:
                     rospy.loginfo("No transform available")
