@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 import math
 import numpy as np
@@ -8,20 +8,22 @@ import csv
 import tf2_ros
 import tf2_geometry_msgs
 from tf.transformations import euler_from_quaternion
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped , PoseWithCovarianceStamped
 from crazyflie_driver.msg import Position
-from std_msgs.msg import Empty
+from std_msgs.msg import Empty, Int16
 
+# Global variables
 state = 0
 angle = 0
 thr = 0.05
 lap = 0
 initialize = 0
 x =  0
-cu_pose = PoseStamped()
+cu_pose = PoseWithCovarianceStamped()
 xmean = 0
 ymean = 0
 cmd = Position()
+trig_msg = 0
 
 def dist(myposex, myposey, goalx, goaly):
     dis = math.sqrt((myposex-goalx)**2+(myposey-goaly)**2)
@@ -31,7 +33,7 @@ def Dict_goal():
     global dictgoal
     dictgoal = []
     pathcsv = expanduser('~')
-    pathcsv += '/dd2419_ws/src/DD2419-PRAS/localization/scripts/Pathcsv'
+    pathcsv += '/home/akanshu/dd2419_ws/src/localization/scripts/Pathcsv' #'/dd2419_ws/src/DD2419-PRAS/localization/scripts/Pathcsv'
     with open(pathcsv, 'rb') as csv_file:
         csv_reader = csv.reader(csv_file)
         next(csv_reader)
@@ -41,6 +43,11 @@ def Dict_goal():
             dictgoal.append(line)
     # print dictgoal[0][1]
     return dictgoal
+
+def Trigdata(trig):
+    global trig_msg
+    trig_msg = trig.data
+    print trig_msg
 
 def init_pose(data):
     global xmean, ymean
@@ -60,7 +67,7 @@ def init_pose(data):
             initial_pose.unregister()
     xmean = round((np.mean(pathxarray)),4)
     ymean = round((np.mean(pathyarray)),4)
-    print xmean, ymean
+    # print xmean, ymean
 
 def originn(xmn,ymn):
     global origin
@@ -73,52 +80,35 @@ def originn(xmn,ymn):
     origin.yaw = 0
     return origin
 
-# def setpoint1():
-#     global spoint1
-
-#     spoint1 = Position()
-#     spoint1.header.frame_id = 'cf1/odom'
-#     spoint1.x = -0.25
-#     spoint1.y = -0.25
-#     spoint1.z = 0.4
-#     spoint1.yaw = 000
-#     # spoint = pose
-#     return spoint1
-
-
-def Rotate_callback(origin):
+def Rotate_callback(rposex,rposey):
     global state, angle, Rotate_cmd, lap
 
     Rotate_cmd = Position()
     Rotate_cmd.header.frame_id = 'cf1/odom'  
 
     angle += 5 
-    Rotate_cmd.x = origin.x
-    Rotate_cmd.y = origin.y
-    Rotate_cmd.z = origin.z
+    Rotate_cmd.x = rposex
+    Rotate_cmd.y = rposey
+    Rotate_cmd.z = 0.4 
     Rotate_cmd.yaw = angle
-    # rospy.loginfo('Rotating now angle:\n%s',Rotate_cmd.yaw)
-    # pub_cmd.publish(Rotate_cmd)
     if angle == 360:
         angle = 0
         lap += 1
-    print(lap)
     return Rotate_cmd
     
 def Landing_callback(lpose):
-    global alt, landing_cmd
+    global alt, landing_cmd ,state
     print ('in landing')
     landing_cmd = Position()
     landing_cmd.header.frame_id = 'cf1/odom'
-    landing_cmd.x = lpose.pose.position.x
-    landing_cmd.y = lpose.pose.position.y
-    alt = lpose.pose.position.z
+    landing_cmd.x = lpose.pose.pose.position.x
+    landing_cmd.y = lpose.pose.pose.position.y
+    alt = lpose.pose.pose.position.z
     alt -= 0.1
     landing_cmd.z = alt
     landing_cmd.yaw = 0   
-    if alt == 0 and lpose.pose.position.z == 0.0:
-        #Landing done
-        landing_cmd = None
+    if alt < 0.15 and lpose.pose.pose.position.z < 0.15:
+        state = 7
     return landing_cmd
 
 
@@ -138,92 +128,91 @@ def goalpub(cmdx,cmdy):
 
     goal_odom = tf_buf.transform(goal, 'cf1/odom')
 
+    
+    roll, pitch, yaww = euler_from_quaternion((goal.pose.orientation.x,
+                                              goal.pose.orientation.y,
+                                              goal.pose.orientation.z,
+                                              goal.pose.orientation.w), axes = "rzyx")
+    yaww = round(yaww,3)
+                                        
     if goal_odom:
-        #print(goal_odom.header.stamp)
         cmd = Position()
         cmd.header.stamp = rospy.Time.now()
         cmd.header.frame_id = "cf1/odom"
-        cmd.x = goal_odom.pose.position.x + 0.5
-        cmd.y = goal_odom.pose.position.y + 0.5
+        cmd.x = goal_odom.pose.position.x # + 0.5
+        cmd.y = goal_odom.pose.position.y # + 0.5
         cmd.z = goal_odom.pose.position.z
-        cmd.yaw = 180
-        odom_cmd = cmd
-        print ('odom_cmd = %s,%s',odom_cmd.x,odom_cmd.y)
-        return odom_cmd
-        
-            
 
-# def publish_cmd(cmd):
-#     if cmd != None:
-#         cmd.header.stamp = rospy.Time.now()
-#         pub_cmd.publish(cmd)
-#     elif cmd == None:
-#         # cmd.header.stamp = rospy.Time.now()
-#         cmd.z = 0.4
-#         pub_cmd.publish(cmd)
+        if state == 5:
+            cmd.yaw = -180-(math.degrees(yaww))
+        else:
+            cmd.yaw = 0
+            
+        print cmd.yaw
+        odom_cmd = cmd
+        return odom_cmd
 
 def sub_callback(cf1_pose):
     global cu_pose
     cu_pose = cf1_pose
-    # print(state_machine_bool)
-
-def state_machine():
     
-    global state, initialize, xval, yval, zval , x
-    # state_machine_bool = False
-    xval = round(cu_pose.pose.position.x,3)    
-    yval = round(cu_pose.pose.position.y,3)
-    zval = round(cu_pose.pose.position.z,3)
+def state_machine():
+    global state, initialize, x, lap, trig_msg
+    
+    xval = round(cu_pose.pose.pose.position.x,3)    
+    yval = round(cu_pose.pose.pose.position.y,3)
+    zval = round(cu_pose.pose.pose.position.z,3)
     # print xval, yval, zval
-
-    # initialize = 0
 
     if initialize < 1 and zval < 0.15:
         state = 1
-        print zval
         initialize += 1
 
-    elif  zval == 0.4 and dist(xval,yval,xmean,ymean) < thr and lap == 0:
+    elif(zval >= 0.375 and zval <= 0.425) and dist(xval,yval,xmean,ymean) < thr and lap == 0:
         state = 2    
 
-    elif state >= 2 and (zval >= 0.375 and zval <= 0.425) and lap == 1: #Head to waypoint
-        print xval,yval
-        
-        # if state_machine_bool is not True:
-        print ('in state 2')
-        xcmd = dictgoal[x][0]
-        ycmd = dictgoal[x][1]
-        goalpub(xcmd,ycmd) #Returns cmd.x and cmd.y
-        print xval,yval,cmd.x,cmd.y,xcmd,ycmd
-        if dist(xval,yval,cmd.x,cmd.y) > thr: #pathpoint not reached
-            state = 3
-            # state_machine_bool = False
-            print ('Getting to pathpoint')
-        elif dist(xval,yval,cmd.x,cmd.y) < thr :
-            # state_machine_bool = True
-            print ('Reached pathpoint')
-            if x != (len(dictgoal)-1):
-                x += 1
-            elif x == (len(dictgoal)-1):
-                state = 4
-    
-    
-    # for e in range(len(dictgoal)):
-    #     xcmd = dictgoal[e][0]
-    #     ycmd = dictgoal[e][1]
-    #     print xcmd,ycmd
-    #     goalpub(xcmd,ycmd)
-    #     pub_cmd.publish(odom_cmd)
+    elif state >= 2 and (zval >= 0.375 and zval <= 0.425) and lap >= 1: #Head to waypoint
+        Dict_goal()
+        if dictgoal:        
+            xcmd = dictgoal[x][0]
+            ycmd = dictgoal[x][1]
+
+            print xval,yval,cmd.x,cmd.y,xcmd,ycmd
+            if (xcmd !=100 and ycmd !=100):
+                goalpub(xcmd,ycmd)
+                if (dist(xval,yval,cmd.x,cmd.y) > thr): #pathpoint not reached
+                    state = 3
+                    print ('Getting to pathpoint')
+                elif dist(xval,yval,cmd.x,cmd.y) < thr:
+                    print ('Reached pathpoint')
+                    if x != (len(dictgoal)-1):
+                        x += 1
+                    elif x == (len(dictgoal)-1): #Last pathpoint
+                        state = 6
+            
+            elif (xcmd==100 and ycmd==100):
+
+                if x != (len(dictgoal)-1):
+                    state = 5   #Publish update odom cmd yaw with previous saved odomx and odom
+                    if trig_msg == 1: #Start with the checkpoint
+                        lap = 0
+                        state = 4
+                        x += 1
+                        trig_msg = 0
+                elif x == (len(dictgoal)-1):  #Last pathpoint
+                    state = 6
+
 
 rospy.init_node('Takeoff_n_Scout')
-sub_pose = rospy.Subscriber('/cf1/pose', PoseStamped, sub_callback)
+sub_pose = rospy.Subscriber('/pose_filtered', PoseWithCovarianceStamped, sub_callback)
 pub_cmd  = rospy.Publisher('/cf1/cmd_position', Position, queue_size=2)
 initial_pose = rospy.Subscriber('/cf1/pose', PoseStamped, init_pose)
+Trig_data = rospy.Subscriber('Object_Trig', Int16, Trigdata)
+pub_stop = rospy.Publisher('/cf1/cmd_stop', Empty, queue_size=1)
 tf_buf = tf2_ros.Buffer()
 tf_lstn = tf2_ros.TransformListener(tf_buf)
 
 def main():
-    Dict_goal()
     rate = rospy.Rate(10)  # Hz
     # print ('main')
     while not rospy.is_shutdown():
@@ -231,27 +220,26 @@ def main():
         if state == 1:
             originn(xmean,ymean)
             pub_cmd.publish(origin)
-            # print state
         elif state == 2:
-            Rotate_callback(origin)
+            # print state
+            Rotate_callback(xmean,ymean)
             pub_cmd.publish(Rotate_cmd)
         elif state == 3:
-            # print odom_cmd
+            print state            
             pub_cmd.publish(odom_cmd)
-            # setpoint()
-            # pub_cmd.publish(spoint)
-            # state = 4
-            # for e in range(len(dictgoal)):
-            #     xcmd = dictgoal[e][0]
-            #     ycmd = dictgoal[e][1]
-            #     print xcmd,ycmd
-            #     goalpub(xcmd,ycmd)
-            #     pub_cmd.publish(odom_cmd)
-            
         elif state == 4:
-            print state
+            print state            
+            Rotate_callback(odom_cmd.x,odom_cmd.y)
+            pub_cmd.publish(Rotate_cmd)
+        elif state == 5:
+            pub_cmd.publish(odom_cmd)
+        elif state == 6:
+            # print state
             Landing_callback(cu_pose)
             pub_cmd.publish(landing_cmd)
+        elif state == 7:
+            pub_stop.publish(Empty())
+            print('Mission Complete')
         rate.sleep()
 
 if __name__ == '__main__':

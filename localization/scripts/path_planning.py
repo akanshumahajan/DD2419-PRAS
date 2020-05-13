@@ -49,25 +49,29 @@ class Pathplanning:
         
         self.start_msg = PoseStamped()
         self.start_msg.header.frame_id = 'map'
-
         trans = None
+        trans_bool = False
         target_frame = 'map'
         try:
             trans = self.tfBuffer.lookup_transform(target_frame,'cf1/odom',rospy.Time(0), rospy.Duration(1.0))
             rospy.loginfo('Lookup transfrom from odom to map is available')
+            trans_bool = True
 
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
             #trans = self.tfBuffer.lookup_transform(self.map_frame, self.est_veh_pose_frame, rospy.Time(0), rospy.Duration(1.0))
             rospy.loginfo('Failure of lookup transfrom from odom to map')
-            self.start_msg.pose.position.x = -0.25          # Default Position in our created world
-            self.start_msg.pose.position.y = 0.4
+            trans_bool = False
+            # self.start_msg.pose.position.x = -0.25          # Default Position in our created world
+            # self.start_msg.pose.position.y = 0.4
             
 
         if trans != None:
             self.start_msg.header.stamp = rospy.Time.now()
             self.start_msg.pose.position = trans.transform.translation
             self.start_msg.pose.orientation = trans.transform.rotation
-            self.pub_start.publish(self.start_msg)
+            # self.pub_start.publish(self.start_msg)            # Don't know why?????????
+        
+        return trans_bool
 
 
     def get_goal_position(self):      # Run this to get the positions 
@@ -244,11 +248,18 @@ class Pathplanning:
 
 if __name__ == '__main__':
 
+    trans_bool = False
     rospy.init_node('Pathplanning', anonymous=True)
     rospy.loginfo("Successful initilization of path planning node")
     quad = Pathplanning()
-    quad.start_position()
-    quad.get_goal_position()
-    quad.path_planning_start_end()
+    while trans_bool is not True:
+        if not rospy.is_shutdown():
+            trans_bool = quad.start_position()
+            print(trans_bool)
+        else:
+            break
+    if trans_bool is True:
+        quad.get_goal_position()
+        quad.path_planning_start_end()
     rospy.spin()
     #rospy.init_node('navgoal3')
