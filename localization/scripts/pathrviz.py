@@ -14,12 +14,11 @@ def odom_cb(data):
     pose.pose = data.pose
     path.poses.append(pose)
     path_pub.publish(path)
-    print path
 
 rospy.init_node('rviz_path')
 
 
-odom_sub = rospy.Subscriber('/cf1/pose', PoseStamped, odom_cb)
+odom_sub = rospy.Subscriber('/planned_path', PoseStamped, odom_cb)
 path_pub = rospy.Publisher('/path', Path, queue_size=10)
 
 if __name__ == '__main__':

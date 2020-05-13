@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import sys
-sys.path.insert(0, "/home/sumslinux/dd2419_ws/src/localization/scripts")
+sys.path.insert(0, "/home/akanshu/dd2419_ws/src/localization/scripts")
 import math
 from heapq import heappush, heappop
 from utils import dist2d

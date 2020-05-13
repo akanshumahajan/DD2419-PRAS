@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import math
-import rospy
 import json
 from os.path import expanduser
 
@@ -28,8 +27,7 @@ def goal_to_sign(jsonsign):
 
 def start_to_end():
     initialize = 0
-    no_signs = len(dict_signs) + 1
-    # print no_signs
+    no_signs = len(dict_signs)+1
     for i in range(no_signs):
         # From start to first goal
         if i == 0:
@@ -49,33 +47,34 @@ def start_to_end():
             start = [dict_signs[i-1][0],dict_signs[i-1][1]]
             end = [0,0]
             waypoints[i] = start,end
-    # print waypoints
+
+    print(waypoints)    
+    for i in range(len(waypoints)):
+        start = waypoints[i][0]
+        end = waypoints[i][1]
+
+        print(type(start))
+        print((start))
+        print(type(end))
+        print((end))
+
+
     return waypoints
 
-# print waypoints
-
-rospy.init_node('Start_and_end_goals')
-# start_pub = rospy.Publisher('Waypoint_goal',String , queue_size=2)
-# end_pub = rospy.Publisher('end_goal', Position, queue_size=5)
-
 def main():
-    global jsonsign
-    rate = rospy.Rate(10)  # Hz
+
     path = expanduser('~')
     path += '/dd2419_ws/src/course_packages/dd2419_resources/worlds_json/milestone3.world.json'
     with open(path, 'rb') as f:
         world = json.load(f)
     jsonMarker = [m for m in world['markers']]
-    # print jsonMarker
-    # print jsonMarker[0]['pose']['position'][2]
+    # print( jsonMarker)
+    # print (jsonMarker[0]['pose']['position'][2])
     #Returns everything in roadsigns
     jsonsign = [m for m in world['roadsigns']]
     # while not rospy.is_shutdown():
     goal_to_sign(jsonsign)
     start_to_end()
-    # print waypoints
-    # rospy.spin()
 
 if __name__ == '__main__':
     main()
-    print waypoints

@@ -68,14 +68,14 @@ def dist(myposex, myposey, goalx, goaly):
 def state_machine(cf1_pose):
     global cu_pose, state
     cu_pose = cf1_pose
-    # xval = round(cu_pose.pose.position.x,1)    
-    # yval = round(cu_pose.pose.position.y,1)
+    xval = round(cu_pose.pose.position.x,1)    
+    yval = round(cu_pose.pose.position.y,1)
     zval = round(cu_pose.pose.position.z,1)
     # print xval, yval, zval
      
-    if zval < 0.15:
+    if zval < 0.1:
         state = 1
-        print zval
+        print state
     if  zval == 0.4:#dist(xval, yval,0.0,0.0) < thr and 
         state = 2
     
@@ -90,12 +90,10 @@ pub_cmd  = rospy.Publisher('/cf1/cmd_position', Position, queue_size=2)
 
 def main():
     rate = rospy.Rate(10)  # Hz
-    print ('main')
     while not rospy.is_shutdown():
         if state == 1:
             originn(cu_pose)
             pub_cmd.publish(origin)
-            print state
         elif state == 2:
             Rotate_callback(origin)
             pub_cmd.publish(Rotate_cmd)

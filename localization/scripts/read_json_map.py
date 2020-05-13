@@ -1,5 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+"""
+Created on Fri Feb 21 16:00:19 2020
+
+Transform a json world file to a grid 
+
+@author: Fredrik Forsberg
+"""
 
 import json
 import numpy as np
@@ -66,7 +73,7 @@ def world_coord_to_grid_index(coord, offset, grid_res):
     
 
 if __name__ == '__main__':
-    json_file = '/home/sumslinux/dd2419_ws/src/course_packages/dd2419_resources/worlds_json/milestone3.world.json'
+    json_file = '/home/akanshu/dd2419_ws/src/course_packages/dd2419_resources/worlds_json/milestone3.world.json'
     json_dict = read_json(json_file)
     grid, offset = create_grid(json_dict, grid_res=100)
     grid = draw_walls(json_dict, grid, offset, grid_res=100)
@@ -77,7 +84,7 @@ if __name__ == '__main__':
     img[:,:,1] = grid * 255
     img[:,:,2] = grid * 255
     
-    cv2.imshow("2D map3", img)
+    cv2.imshow("2D map", img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
     

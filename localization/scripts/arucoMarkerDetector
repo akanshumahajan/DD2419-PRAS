@@ -24,8 +24,8 @@ def build_transform(marker):
         # rospy.loginfo("transform not available")
         return
     #Transfroms pose from camera into map
-    marker_odom = tf_buf.transform(marker_camera,"cf1/camera_link", rospy.Duration(0.1))
-    print marker_odom
+    marker_odom = tf_buf.transform(marker_camera,"cf1/odom", rospy.Duration(0.1))
+
     # if not tf_buf.can_transform("map","cf1/odom", rospy.Time(0)):
     #     return
     # marker_odom = tf_buf.transform(marker_od,"map", rospy.Duration(0.1))
@@ -37,7 +37,7 @@ def build_transform(marker):
     marker_map_transform.header.stamp = rospy.Time.now()
     marker_map_transform.transform.translation = marker_odom.pose.position
     marker_map_transform.transform.rotation = marker_odom.pose.orientation
-    print marker_map_transform
+    # print marker_map_transform
     return marker_map_transform
     
 drift_marker = PoseStamped()
@@ -86,7 +86,7 @@ def drift_calc(jsonMarker):
     jroll = round(jroll,2)
     jpitch = round(jroll,2)
     jyaw = round(jroll,2)
-
+    
     roll = 0.0 #round(jroll,2) - round(orientation_x,2) 
     pitch = 0.0 #round(jpitch,2) - round(orientation_y,2)   
     yaw = 0.0 #round(jyaw,2) - round(orientation_z,2) 
@@ -104,8 +104,8 @@ def drift_calc(jsonMarker):
     odomtrans.transform.rotation.y = yodel
     odomtrans.transform.rotation.z = zodel
     odomtrans.transform.rotation.w = wodel
-    # print odomtrans
-    # return odomtrans
+    print odomtrans
+    return odomtrans
     
 
 # def normalized_tranform():

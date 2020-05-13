@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import sys
-sys.path.insert(0, "/home/sumslinux/dd2419_ws/src/localization/scripts")
+sys.path.insert(0, "/home/akanshu/dd2419_ws/src/localization/scripts")
 import json
 import numpy as np
 import matplotlib.pyplot as plt
@@ -197,7 +197,7 @@ class OccupancyGridMap:
         plt.draw()
 
     @staticmethod
-    def from_png(filename = '/home/sumslinux/dd2419_ws/src/localization/maps/2D map.png', cell_size = 0.1):
+    def from_png(filename = '/home/akanshu/dd2419_ws/src/localization/maps/2D map.png', cell_size = 0.1):
         """
         Create an OccupancyGridMap from a png image
         :param filename: the image filename
@@ -270,7 +270,7 @@ def draw_walls(json_dict, grid, offset, grid_res=100):
     
 #     return np.floor((coord - offset) * grid_res)
 
-def read_json(path = '/home/sumslinux/dd2419_ws/src/course_packages/dd2419_resources/worlds_json/milestone3.world.json'):
+def read_json(path = '/home/akanshu/dd2419_ws/src/course_packages/dd2419_resources/worlds_json/milestone3.world.json'):
     with open(path) as f:
         json_dict = json.load(f)
 
@@ -283,8 +283,8 @@ def read_json(path = '/home/sumslinux/dd2419_ws/src/course_packages/dd2419_resou
     img[:,:,1] = grid * 255
     img[:,:,2] = grid * 255
     #cv2.imshow("2D map", img)
-    cv2.imwrite('/home/sumslinux/dd2419_ws/src/DD2419-PRAS/localization/maps/2D map.png',img) 
-    print("map is printed")
-    ogm_from_json = OccupancyGridMap.from_png('/home/sumslinux/dd2419_ws/src/DD2419-PRAS/localization/maps/2D map.png', 0.1)
+    cv2.imwrite('/home/akanshu/dd2419_ws/src/localization/maps/2D map.png',img) 
+
+    ogm_from_json = OccupancyGridMap.from_png('/home/akanshu/dd2419_ws/src/localization/maps/2D map.png', 0.1)
 
     return ogm_from_json
