@@ -36,11 +36,9 @@ class Localization:
 
     def __init__(self):
         
-
         # Initilize tf2 broadcaster and transform message
-        self.br = tf2_ros.TransformBroadcaster()
+        self.br = tf2_ros.StaticTransformBroadcaster()
 
-        # self.br = tf2_ros.StaticTransformBroadcaster()
         # Initialize listener for estimated pose of vehicle in map frame
         self.tfBuffer = tf2_ros.Buffer()
         self.listener = tf2_ros.TransformListener(self.tfBuffer)
@@ -75,53 +73,21 @@ class Localization:
     def odom_to_map(self):
         t = TransformStamped()
         t.header.stamp = rospy.Time.now()
-        t.header.frame_id = 'cf1/odom'
-        t.child_frame_id = 'map'
+        t.header.frame_id = 'map'
+        t.child_frame_id = 'cf1/odom'
         t.transform.translation.x = self.odom_map_diff[(0, 3)]
         t.transform.translation.y = self.odom_map_diff[(1, 3)]
         t.transform.translation.z = self.odom_map_diff[(2, 3)]
         
-        # [self.roll_diff, self.pitch_diff, self.yaw_diff] = self.odom_map_diff.GetRPY()
         (t.transform.rotation.x, t.transform.rotation.y, t.transform.rotation.z, t.transform.rotation.w) = self.odom_map_diff.M.GetQuaternion()
-        # (t.transform.rotation.x,
-        # t.transform.rotation.y,
-        # t.transform.rotation.z,
-        # t.transform.rotation.w) = quaternion_from_euler(math.radians(self.roll_diff),
-        #                                              math.radians(self.pitch_diff),
-        #                                              math.radians(self.yaw_diff))       # ,'rzxy'
 
-        print(t)
-        # self.br2.sendTransform(t)
-        # rospy.sleep(3600)
-
+        # print(t)
         return t
-
-    def odom_to_map_static(self):
-        t = TransformStamped()
-        t.header.stamp = rospy.Time.now()
-        t.header.frame_id = 'map'
-        t.child_frame_id = 'cf1/odom'
-        t.transform.translation.x = 0
-        t.transform.translation.y = 0
-        t.transform.translation.z = 0
-        
-        (t.transform.rotation.x,
-        t.transform.rotation.y,
-        t.transform.rotation.z,
-        t.transform.rotation.w) = (0,0,0,1)
-        print(t)
-
-        # self.br.sendTransform(t)
-        # rospy.sleep(1)
-        return t
-
-
 
     def marker_odom(self, marker):
         
         trans = None
         transform = TransformStamped()
-        trans_static = False
         trans_detected = False
 
         source_frame = "aruco/detected" + str(marker['id'])
@@ -131,65 +97,29 @@ class Localization:
             rospy.loginfo('Success of lookup transfrom from %s to cf1/odom' % source_frame)
 
         except:
-            #trans = self.tfBuffer.lookup_transform(self.map_frame, self.est_veh_pose_frame, rospy.Time(0), rospy.Duration(1.0))
             rospy.loginfo('Failure of lookup transfrom from %s to cf1/odom' % source_frame)
         
         if trans!= None:
-            # (position_trans, quartenion_trans) = (trans.transform.translation, trans.transform.rotation)
+
             tf_trans = ((trans.transform.translation.x, trans.transform.translation.y, trans.transform.translation.z), (trans.transform.rotation.x, 
                         trans.transform.rotation.y, trans.transform.rotation.z, trans.transform.rotation.w))
             self.odom_pykdl = pm.fromTf(tf_trans)
-
-            #print (m)
-            self.x_odom = trans.transform.translation.x
-            self.y_odom = trans.transform.translation.y
-            self.z_odom = trans.transform.translation.z
-            
-            # print("Translation odom is")
-            # print(self.x_odom)
-            # print(self.y_odom)
-            # print(self.z_odom)
-
-            self.x_quat_odom = round(trans.transform.rotation.x, 1)
-            self.y_quat_odom = round(trans.transform.rotation.y, 1)
-            self.z_quat_odom = round(trans.transform.rotation.z, 1)
-            self.w_quat_odom = round(trans.transform.rotation.w, 1)      
-
-            # print(self.x_quat_odom)
-            # print(self.y_quat_odom)
-            # print(self.z_quat_odom)
-            # print(self.w_quat_odom)
-
 
             self.marker_map(marker)
             self.diff()
             transform = self.odom_to_map()
             trans_detected = True
-            rospy.loginfo("Done")
-            # self.br.sendTransform(transform)
-            # rospy.sleep(1)
 
         else:
             
-            # if self.bool_static is False:
             rospy.loginfo("No transform available")
-            # transform = self.odom_to_map_static()
-            # trans_static = True
-            # rospy.loginfo("Published static transform")
-            # print(transform)
-            # self.br.sendTransform(transform)
-            # rospy.sleep(1)
-            #     self.bool_static =True
 
-            #rospy.sleep(3)
-
-        return trans_static, trans_detected , transform
+        return trans_detected , transform
 
 
     def main(self, argv=sys.argv, transform_bool = False):
         
         transform = TransformStamped()
-        trans_static = False
         trans_detected = False
         while transform_bool is False:
 
@@ -205,37 +135,24 @@ class Localization:
             # Load default world JSON
                 with open('~/dd2419_ws/src/course_packages/dd2419_resources/worlds_json/milestone3.world.json', 'rb') as f:
                     self.world = json.load(f)
-
-            #transform = self.marker_odom()
         
             for m in self.world['markers']:
-            #    transforms = [transform_from_marker(m)]
-                trans_static, trans_detected , transform = self.marker_odom(m)
+
+                trans_detected , transform = self.marker_odom(m)
                 
                 if trans_detected is True:
-                    rospy.loginfo("Transform available")
-
+                    rospy.loginfo("Transform available and broadcasted")
                     self.br.sendTransform(transform)
                     rospy.sleep(5)
 
                     # transform_bool = True       # Set to True to get the first transform and keep on publishing that
                     transform_bool = True
-
                     break
-                elif trans_static is True:
+                else:
                     rospy.loginfo("No transform available")
-                    # self.br.sendTransform(transform)
-                    # self.odom_to_map_static()
-                    rospy.sleep(1)
-                    # rospy.loginfo("Published static transform")
-
                     transform_bool = False
         
         return transform
-        # rospy.spin()
-
-
-        # rate.sleep()
 
 if __name__ == '__main__':
 
@@ -244,17 +161,5 @@ if __name__ == '__main__':
     rospy.loginfo("Successful initilization of node map_to_odom")
 
     odom_to_map = Localization()
-
     transform = odom_to_map.main()
     rospy.spin()
-    # rate = rospy.Rate(10)
-    # br2 = tf2_ros.StaticTransformBroadcaster()
-    # while not rospy.is_shutdown():
-    #     transform.header.stamp = rospy.Time.now()
-    #     transform.header.frame_id = 'map'
-    #     transform.child_frame_id = 'cf1/odom'
-
-    #     br2.sendTransform(transform)
-    #     rospy.sleep(1)
-    #     print(transform)
-    #     rate.sleep
